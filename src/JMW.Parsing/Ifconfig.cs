@@ -16,6 +16,8 @@ public record ParsingOptions(OutputType OutputType);
 
 public static class Ifconfig
 {
+    #region Public Parse/Output
+
     public static void Parse(TextReader output, ParsingOptions options)
     {
         if (options.OutputType == OutputType.KeyValue)
@@ -111,6 +113,27 @@ public static class Ifconfig
             pair.WriteJson(writer);
         }
     }
+    
+    private static string CleanKey(string key)
+    {
+        // remove non alphabet chars
+        // convert to PascalCase
+        var sb = new StringBuilder();
+        char? last = null;
+        foreach (var current in key)
+        {
+            if (char.IsDigit(current) || char.IsLetter(current))
+            {
+                sb.Append(last is null || char.IsWhiteSpace(last.Value)
+                    ? char.ToUpper(current)
+                    : current);
+            }
+            last = current;
+        }
+        return sb.ToString();
+    }
+
+    #endregion
 
     private record Pair(string Key, string Value, Pair[] Children, string ChildType = "object")
     {
@@ -168,25 +191,6 @@ public static class Ifconfig
                 }
             }
         }
-    }
-
-    private static string CleanKey(string key)
-    {
-        // remove non alphabet chars
-        // convert to PascalCase
-        var sb = new StringBuilder();
-        char? last = null;
-        foreach (var current in key)
-        {
-            if (char.IsDigit(current) || char.IsLetter(current))
-            {
-                sb.Append(last is null || char.IsWhiteSpace(last.Value)
-                    ? char.ToUpper(current)
-                    : current);
-            }
-            last = current;
-        }
-        return sb.ToString();
     }
 
     private static readonly HashSet<string> arrayPairs = new(){
