@@ -1,0 +1,1563 @@
+[
+  {
+    "InterfaceName": "lo0",
+    "Flags": {
+      "Flags": "8049",
+      "Values": [
+        "UP",
+        "LOOPBACK",
+        "RUNNING",
+        "MULTICAST"
+      ]
+    },
+    "Mtu": "16384",
+    "Index": "1",
+    "Eflags": {
+      "Eflags": "12000000",
+      "Values": [
+        "ECN_DISABLE",
+        "SENDLIST"
+      ]
+    },
+    "Xflags": {
+      "Xflags": "4",
+      "Values": [
+        "NOAUTONX"
+      ]
+    },
+    "Options": {
+      "Options": "1203",
+      "Values": [
+        "RXCSUM",
+        "TXCSUM",
+        "TXSTATUS",
+        "SW_TIMESTAMP"
+      ]
+    },
+    "Hwassist": {
+      "Hwassist": "29000ff",
+      "Values": [
+        "CSUM_IP",
+        "CSUM_TCP",
+        "CSUM_UDP",
+        "CSUM_IP_FRAGS",
+        "CSUM_FRAGMENT",
+        "CSUM_TCPIPV6",
+        "CSUM_UDPIPV6",
+        "CSUM_FRAGMENT_IPV6",
+        "MULTIPAGES",
+        "TXSTATUS",
+        "SW_TIMESTAMP"
+      ]
+    },
+    "Inet": [
+      {
+        "Inet": "127.0.0.1",
+        "Netmask": "0xff000000"
+      }
+    ],
+    "Inet6": [
+      {
+        "Inet6": "::1",
+        "Prefixlen": "128"
+      },
+      {
+        "Inet6": "fe80::1",
+        "Interface": "lo0",
+        "Prefixlen": "64",
+        "Scopeid": "0x1"
+      }
+    ],
+    "Routermode4": "disabled",
+    "Routermode6": "disabled"
+  },
+  {
+    "InterfaceName": "gif0",
+    "Flags": {
+      "Flags": "8010",
+      "Values": [
+        "POINTOPOINT",
+        "MULTICAST"
+      ]
+    },
+    "Mtu": "1280",
+    "Index": "2",
+    "Eflags": {
+      "Eflags": "1000000",
+      "Values": [
+        "ECN_ENABLE"
+      ]
+    },
+    "Routermode4": "disabled",
+    "Routermode6": "disabled"
+  },
+  {
+    "InterfaceName": "stf0",
+    "Flags": {
+      "Flags": "0",
+      "Values": [
+        ""
+      ]
+    },
+    "Mtu": "1280",
+    "Index": "3",
+    "Eflags": {
+      "Eflags": "1000000",
+      "Values": [
+        "ECN_ENABLE"
+      ]
+    },
+    "Routermode4": "disabled",
+    "Routermode6": "disabled"
+  },
+  {
+    "InterfaceName": "anpi0",
+    "Flags": {
+      "Flags": "8863",
+      "Values": [
+        "UP",
+        "BROADCAST",
+        "SMART",
+        "RUNNING",
+        "SIMPLEX",
+        "MULTICAST"
+      ]
+    },
+    "Mtu": "1500",
+    "Index": "4",
+    "Eflags": {
+      "Eflags": "41000080",
+      "Values": [
+        "TXSTART",
+        "ECN_ENABLE",
+        "FASTLN_ON"
+      ]
+    },
+    "Xflags": {
+      "Xflags": "2000",
+      "Values": [
+        "NOSHAPING"
+      ]
+    },
+    "Options": {
+      "Options": "400",
+      "Values": [
+        "CHANNEL_IO"
+      ]
+    },
+    "Ether": "ae:11:a3:27:51:42",
+    "Netif": "165E049F-6EFC-4F32-AC0E-7D1D3CA43AA8",
+    "Media": "none",
+    "Status": "inactive",
+    "Type": "USB Ethernet",
+    "Agent": [
+      {
+        "Domain": "Skywalk",
+        "Type": "NetIf",
+        "Flags": "0xa443",
+        "Desc": "\u0022Userspace Networking\u0022"
+      }
+    ],
+    "Scheduler": "FQ_CODEL",
+    "Routermode4": "disabled",
+    "Routermode6": "disabled"
+  },
+  {
+    "InterfaceName": "anpi1",
+    "Flags": {
+      "Flags": "8863",
+      "Values": [
+        "UP",
+        "BROADCAST",
+        "SMART",
+        "RUNNING",
+        "SIMPLEX",
+        "MULTICAST"
+      ]
+    },
+    "Mtu": "1500",
+    "Index": "5",
+    "Eflags": {
+      "Eflags": "41000080",
+      "Values": [
+        "TXSTART",
+        "ECN_ENABLE",
+        "FASTLN_ON"
+      ]
+    },
+    "Xflags": {
+      "Xflags": "2000",
+      "Values": [
+        "NOSHAPING"
+      ]
+    },
+    "Options": {
+      "Options": "400",
+      "Values": [
+        "CHANNEL_IO"
+      ]
+    },
+    "Ether": "ae:11:a3:27:51:43",
+    "Netif": "34A671DA-5B6B-4459-97D5-46657BA681D8",
+    "Media": "none",
+    "Status": "inactive",
+    "Type": "USB Ethernet",
+    "Agent": [
+      {
+        "Domain": "Skywalk",
+        "Type": "NetIf",
+        "Flags": "0xa443",
+        "Desc": "\u0022Userspace Networking\u0022"
+      }
+    ],
+    "Scheduler": "FQ_CODEL",
+    "Routermode4": "disabled",
+    "Routermode6": "disabled"
+  },
+  {
+    "InterfaceName": "anpi2",
+    "Flags": {
+      "Flags": "8863",
+      "Values": [
+        "UP",
+        "BROADCAST",
+        "SMART",
+        "RUNNING",
+        "SIMPLEX",
+        "MULTICAST"
+      ]
+    },
+    "Mtu": "1500",
+    "Index": "6",
+    "Eflags": {
+      "Eflags": "41000080",
+      "Values": [
+        "TXSTART",
+        "ECN_ENABLE",
+        "FASTLN_ON"
+      ]
+    },
+    "Xflags": {
+      "Xflags": "2000",
+      "Values": [
+        "NOSHAPING"
+      ]
+    },
+    "Options": {
+      "Options": "400",
+      "Values": [
+        "CHANNEL_IO"
+      ]
+    },
+    "Ether": "ae:11:a3:27:51:44",
+    "Netif": "DAAF21E7-F8FC-4FF2-9999-B6191F576B34",
+    "Media": "none",
+    "Status": "inactive",
+    "Type": "USB Ethernet",
+    "Agent": [
+      {
+        "Domain": "Skywalk",
+        "Type": "NetIf",
+        "Flags": "0xa443",
+        "Desc": "\u0022Userspace Networking\u0022"
+      }
+    ],
+    "Scheduler": "FQ_CODEL",
+    "Routermode4": "disabled",
+    "Routermode6": "disabled"
+  },
+  {
+    "InterfaceName": "en4",
+    "Flags": {
+      "Flags": "8863",
+      "Values": [
+        "UP",
+        "BROADCAST",
+        "SMART",
+        "RUNNING",
+        "SIMPLEX",
+        "MULTICAST"
+      ]
+    },
+    "Mtu": "1500",
+    "Index": "7",
+    "Eflags": {
+      "Eflags": "41000080",
+      "Values": [
+        "TXSTART",
+        "ECN_ENABLE",
+        "FASTLN_ON"
+      ]
+    },
+    "Options": {
+      "Options": "400",
+      "Values": [
+        "CHANNEL_IO"
+      ]
+    },
+    "Ether": "ae:11:a3:27:51:22",
+    "Netif": "C35359AF-B049-4882-AF2F-E14E09571898",
+    "Flowswitch": "603B430D-7FA8-414B-B7A5-A75B1E5774AC",
+    "Media": "none",
+    "Status": "inactive",
+    "Type": "USB Ethernet",
+    "Agent": [
+      {
+        "Domain": "Skywalk",
+        "Type": "NetIf",
+        "Flags": "0xa443",
+        "Desc": "\u0022Userspace Networking\u0022"
+      },
+      {
+        "Domain": "Skywalk",
+        "Type": "FlowSwitch",
+        "Flags": "0x4403",
+        "Desc": "\u0022Userspace Networking\u0022"
+      }
+    ],
+    "Scheduler": "FQ_CODEL",
+    "Routermode4": "disabled",
+    "Routermode6": "disabled"
+  },
+  {
+    "InterfaceName": "en5",
+    "Flags": {
+      "Flags": "8863",
+      "Values": [
+        "UP",
+        "BROADCAST",
+        "SMART",
+        "RUNNING",
+        "SIMPLEX",
+        "MULTICAST"
+      ]
+    },
+    "Mtu": "1500",
+    "Index": "8",
+    "Eflags": {
+      "Eflags": "41000080",
+      "Values": [
+        "TXSTART",
+        "ECN_ENABLE",
+        "FASTLN_ON"
+      ]
+    },
+    "Options": {
+      "Options": "400",
+      "Values": [
+        "CHANNEL_IO"
+      ]
+    },
+    "Ether": "ae:11:a3:27:51:23",
+    "Netif": "FF87DEB7-1D8C-421A-B762-FB7A7CD884E7",
+    "Flowswitch": "80CA5331-6E9B-47BB-89B1-FCC8B5D0CA6B",
+    "Media": "none",
+    "Status": "inactive",
+    "Type": "USB Ethernet",
+    "Agent": [
+      {
+        "Domain": "Skywalk",
+        "Type": "NetIf",
+        "Flags": "0xa443",
+        "Desc": "\u0022Userspace Networking\u0022"
+      },
+      {
+        "Domain": "Skywalk",
+        "Type": "FlowSwitch",
+        "Flags": "0x4403",
+        "Desc": "\u0022Userspace Networking\u0022"
+      }
+    ],
+    "Scheduler": "FQ_CODEL",
+    "Routermode4": "disabled",
+    "Routermode6": "disabled"
+  },
+  {
+    "InterfaceName": "en6",
+    "Flags": {
+      "Flags": "8863",
+      "Values": [
+        "UP",
+        "BROADCAST",
+        "SMART",
+        "RUNNING",
+        "SIMPLEX",
+        "MULTICAST"
+      ]
+    },
+    "Mtu": "1500",
+    "Index": "9",
+    "Eflags": {
+      "Eflags": "41000080",
+      "Values": [
+        "TXSTART",
+        "ECN_ENABLE",
+        "FASTLN_ON"
+      ]
+    },
+    "Options": {
+      "Options": "400",
+      "Values": [
+        "CHANNEL_IO"
+      ]
+    },
+    "Ether": "ae:11:a3:27:51:24",
+    "Netif": "92A46D7E-BC67-41F4-9121-12FE47AF2109",
+    "Flowswitch": "00E7B3DB-381A-4ACF-9F32-5FD8B8BD67E2",
+    "Media": "none",
+    "Status": "inactive",
+    "Type": "USB Ethernet",
+    "Agent": [
+      {
+        "Domain": "Skywalk",
+        "Type": "NetIf",
+        "Flags": "0xa443",
+        "Desc": "\u0022Userspace Networking\u0022"
+      },
+      {
+        "Domain": "Skywalk",
+        "Type": "FlowSwitch",
+        "Flags": "0x4403",
+        "Desc": "\u0022Userspace Networking\u0022"
+      }
+    ],
+    "Scheduler": "FQ_CODEL",
+    "Routermode4": "disabled",
+    "Routermode6": "disabled"
+  },
+  {
+    "InterfaceName": "en1",
+    "Flags": {
+      "Flags": "8963",
+      "Values": [
+        "UP",
+        "BROADCAST",
+        "SMART",
+        "RUNNING",
+        "PROMISC",
+        "SIMPLEX",
+        "MULTICAST"
+      ]
+    },
+    "Mtu": "1500",
+    "Index": "10",
+    "Eflags": {
+      "Eflags": "41000080",
+      "Values": [
+        "TXSTART",
+        "ECN_ENABLE",
+        "FASTLN_ON"
+      ]
+    },
+    "Options": {
+      "Options": "460",
+      "Values": [
+        "TSO4",
+        "TSO6",
+        "CHANNEL_IO"
+      ]
+    },
+    "Hwassist": {
+      "Hwassist": "700000",
+      "Values": [
+        "MULTIPAGES",
+        "TSO_V4",
+        "TSO_V6"
+      ]
+    },
+    "Ether": "36:10:0f:92:66:40",
+    "Netif": "C6610564-4E8A-46A7-ABD4-46DAAFDAE8D9",
+    "Media": "autoselect \u003Cfull-duplex\u003E",
+    "Status": "inactive",
+    "Type": "IP over Thunderbolt",
+    "Agent": [
+      {
+        "Domain": "Skywalk",
+        "Type": "NetIf",
+        "Flags": "0xa443",
+        "Desc": "\u0022Userspace Networking\u0022"
+      }
+    ],
+    "Scheduler": "FQ_CODEL",
+    "Routermode4": "disabled",
+    "Routermode6": "disabled"
+  },
+  {
+    "InterfaceName": "en2",
+    "Flags": {
+      "Flags": "8963",
+      "Values": [
+        "UP",
+        "BROADCAST",
+        "SMART",
+        "RUNNING",
+        "PROMISC",
+        "SIMPLEX",
+        "MULTICAST"
+      ]
+    },
+    "Mtu": "1500",
+    "Index": "11",
+    "Eflags": {
+      "Eflags": "41000080",
+      "Values": [
+        "TXSTART",
+        "ECN_ENABLE",
+        "FASTLN_ON"
+      ]
+    },
+    "Options": {
+      "Options": "460",
+      "Values": [
+        "TSO4",
+        "TSO6",
+        "CHANNEL_IO"
+      ]
+    },
+    "Hwassist": {
+      "Hwassist": "700000",
+      "Values": [
+        "MULTIPAGES",
+        "TSO_V4",
+        "TSO_V6"
+      ]
+    },
+    "Ether": "36:10:0f:92:66:44",
+    "Netif": "C6EF8FC2-2F4F-46A8-9B57-967910FCBC68",
+    "Media": "autoselect \u003Cfull-duplex\u003E",
+    "Status": "inactive",
+    "Type": "IP over Thunderbolt",
+    "Agent": [
+      {
+        "Domain": "Skywalk",
+        "Type": "NetIf",
+        "Flags": "0xa443",
+        "Desc": "\u0022Userspace Networking\u0022"
+      }
+    ],
+    "Scheduler": "FQ_CODEL",
+    "Routermode4": "disabled",
+    "Routermode6": "disabled"
+  },
+  {
+    "InterfaceName": "en3",
+    "Flags": {
+      "Flags": "8963",
+      "Values": [
+        "UP",
+        "BROADCAST",
+        "SMART",
+        "RUNNING",
+        "PROMISC",
+        "SIMPLEX",
+        "MULTICAST"
+      ]
+    },
+    "Mtu": "1500",
+    "Index": "12",
+    "Eflags": {
+      "Eflags": "41000080",
+      "Values": [
+        "TXSTART",
+        "ECN_ENABLE",
+        "FASTLN_ON"
+      ]
+    },
+    "Options": {
+      "Options": "460",
+      "Values": [
+        "TSO4",
+        "TSO6",
+        "CHANNEL_IO"
+      ]
+    },
+    "Hwassist": {
+      "Hwassist": "700000",
+      "Values": [
+        "MULTIPAGES",
+        "TSO_V4",
+        "TSO_V6"
+      ]
+    },
+    "Ether": "36:10:0f:92:66:48",
+    "Netif": "8769E4B7-51D5-42F5-85CF-563C3080020A",
+    "Media": "autoselect \u003Cfull-duplex\u003E",
+    "Status": "inactive",
+    "Type": "IP over Thunderbolt",
+    "Agent": [
+      {
+        "Domain": "Skywalk",
+        "Type": "NetIf",
+        "Flags": "0xa443",
+        "Desc": "\u0022Userspace Networking\u0022"
+      }
+    ],
+    "Scheduler": "FQ_CODEL",
+    "Routermode4": "disabled",
+    "Routermode6": "disabled"
+  },
+  {
+    "InterfaceName": "bridge0",
+    "Flags": {
+      "Flags": "8863",
+      "Values": [
+        "UP",
+        "BROADCAST",
+        "SMART",
+        "RUNNING",
+        "SIMPLEX",
+        "MULTICAST"
+      ]
+    },
+    "Mtu": "1500",
+    "Index": "13",
+    "Eflags": {
+      "Eflags": "41010000",
+      "Values": [
+        "CLONE",
+        "ECN_ENABLE",
+        "FASTLN_ON"
+      ]
+    },
+    "Options": {
+      "Options": "63",
+      "Values": [
+        "RXCSUM",
+        "TXCSUM",
+        "TSO4",
+        "TSO6"
+      ]
+    },
+    "Hwassist": {
+      "Hwassist": "700067",
+      "Values": [
+        "CSUM_IP",
+        "CSUM_TCP",
+        "CSUM_UDP",
+        "CSUM_TCPIPV6",
+        "CSUM_UDPIPV6",
+        "MULTIPAGES",
+        "TSO_V4",
+        "TSO_V6"
+      ]
+    },
+    "Ether": "36:10:0f:92:66:40",
+    "Configuration": {
+      "Id": "0:0:0:0:0:0",
+      "Priority": "0",
+      "Hellotime": "0",
+      "Fwddelay": "0",
+      "Maxage": "0",
+      "Holdcnt": "0",
+      "Proto": "stp",
+      "Maxaddr": "100",
+      "Timeout": "1200",
+      "Root": {
+        "Id": "0:0:0:0:0:0",
+        "Priority": "0",
+        "Ifcost": "0",
+        "Port": "0",
+        "Ipfilter": "disabled",
+        "Flags": "0x0",
+        "Member": {
+          "Member": "en1",
+          "Flags": {
+            "Flags": "3",
+            "Values": [
+              "LEARNING",
+              "DISCOVER"
+            ]
+          },
+          "Ifmaxaddr": "0",
+          "Port": "10",
+          "Priority": "0"
+        }
+      }
+    },
+    "Member": [
+      {
+        "Member": "en2",
+        "Flags": {
+          "Flags": "3",
+          "Values": [
+            "LEARNING",
+            "DISCOVER"
+          ]
+        },
+        "Ifmaxaddr": "0",
+        "Port": "11",
+        "Priority": "0"
+      },
+      {
+        "Member": "en3",
+        "Flags": {
+          "Flags": "3",
+          "Values": [
+            "LEARNING",
+            "DISCOVER"
+          ]
+        },
+        "Ifmaxaddr": "0",
+        "Port": "12",
+        "Priority": "0"
+      }
+    ],
+    "Media": "\u003Cunknown type\u003E",
+    "Status": "inactive",
+    "Routermode4": "disabled",
+    "Routermode6": "disabled"
+  },
+  {
+    "InterfaceName": "ap1",
+    "Flags": {
+      "Flags": "8843",
+      "Values": [
+        "UP",
+        "BROADCAST",
+        "RUNNING",
+        "SIMPLEX",
+        "MULTICAST"
+      ]
+    },
+    "Mtu": "1500",
+    "Index": "14",
+    "Eflags": {
+      "Eflags": "45200080",
+      "Values": [
+        "TXSTART",
+        "NOACKPRI",
+        "ECN_ENABLE",
+        "CHANNEL_DRV",
+        "FASTLN_ON"
+      ]
+    },
+    "Options": {
+      "Options": "6460",
+      "Values": [
+        "TSO4",
+        "TSO6",
+        "CHANNEL_IO",
+        "PARTIAL_CSUM",
+        "ZEROINVERT_CSUM"
+      ]
+    },
+    "Hwassist": {
+      "Hwassist": "703000",
+      "Values": [
+        "CSUM_PARTIAL",
+        "CSUM_ZERO_INVERT",
+        "MULTIPAGES",
+        "TSO_V4",
+        "TSO_V6"
+      ]
+    },
+    "Ether": "62:3e:5f:88:0c:1a",
+    "Inet6": [
+      {
+        "Inet6": "fe80::603e:5fff:fe88:c1a",
+        "Interface": "ap1",
+        "Prefixlen": "64",
+        "Scopeid": "0xe"
+      }
+    ],
+    "Netif": "86955190-325F-4918-A88C-72FC8FF81479",
+    "Flowswitch": "2490A7F2-0416-4A45-8C45-CC4B9CAC8665",
+    "Media": "autoselect (\u003Cunknown type\u003E)",
+    "Status": "inactive",
+    "Type": "Wi-Fi",
+    "Agent": [
+      {
+        "Domain": "Skywalk",
+        "Type": "NetIf",
+        "Flags": "0xa443",
+        "Desc": "\u0022Userspace Networking\u0022"
+      },
+      {
+        "Domain": "Skywalk",
+        "Type": "FlowSwitch",
+        "Flags": "0x4403",
+        "Desc": "\u0022Userspace Networking\u0022"
+      }
+    ],
+    "Scheduler": "FQ_CODEL",
+    "Routermode4": "disabled",
+    "Routermode6": "disabled"
+  },
+  {
+    "InterfaceName": "en0",
+    "Flags": {
+      "Flags": "8863",
+      "Values": [
+        "UP",
+        "BROADCAST",
+        "SMART",
+        "RUNNING",
+        "SIMPLEX",
+        "MULTICAST"
+      ]
+    },
+    "Mtu": "1500",
+    "Index": "15",
+    "Eflags": {
+      "Eflags": "452008d0",
+      "Values": [
+        "ADV_REPORT",
+        "ACCEPT_RTADV",
+        "TXSTART",
+        "ARPLL",
+        "NOACKPRI",
+        "ECN_ENABLE",
+        "CHANNEL_DRV",
+        "FASTLN_ON"
+      ]
+    },
+    "Options": {
+      "Options": "6460",
+      "Values": [
+        "TSO4",
+        "TSO6",
+        "CHANNEL_IO",
+        "PARTIAL_CSUM",
+        "ZEROINVERT_CSUM"
+      ]
+    },
+    "Hwassist": {
+      "Hwassist": "703000",
+      "Values": [
+        "CSUM_PARTIAL",
+        "CSUM_ZERO_INVERT",
+        "MULTIPAGES",
+        "TSO_V4",
+        "TSO_V6"
+      ]
+    },
+    "Ether": "60:3e:5f:88:0c:1a",
+    "Inet6": [
+      {
+        "Inet6": "fe80::834:92e1:9f30:bebe",
+        "Interface": "en0",
+        "Prefixlen": "64"
+      }
+    ],
+    "Inet": [
+      {
+        "Inet": "192.168.10.116",
+        "Netmask": "0xffffff00",
+        "Broadcast": "192.168.10.255"
+      }
+    ],
+    "Netif": "4596C5EF-2E4F-4D5F-96FF-2D7ECDCE3FD2",
+    "Flowswitch": "4E248A45-7822-4AA6-A643-09EC929BCF5C",
+    "Media": "autoselect",
+    "Status": "active",
+    "Type": "Wi-Fi",
+    "Agent": [
+      {
+        "Domain": "Skywalk",
+        "Type": "NetIf",
+        "Flags": "0xa443",
+        "Desc": "\u0022Userspace Networking\u0022"
+      },
+      {
+        "Domain": "Skywalk",
+        "Type": "FlowSwitch",
+        "Flags": "0x4403",
+        "Desc": "\u0022Userspace Networking\u0022"
+      },
+      {
+        "Domain": "WiFiManager",
+        "Type": "CallInProgress",
+        "Flags": "0x3d"
+      }
+    ],
+    "Scheduler": "FQ_CODEL",
+    "Routermode4": "disabled",
+    "Routermode6": "disabled"
+  },
+  {
+    "InterfaceName": "awdl0",
+    "Flags": {
+      "Flags": "8843",
+      "Values": [
+        "UP",
+        "BROADCAST",
+        "RUNNING",
+        "SIMPLEX",
+        "MULTICAST"
+      ]
+    },
+    "Mtu": "1500",
+    "Index": "16",
+    "Eflags": {
+      "Eflags": "453e0080",
+      "Values": [
+        "TXSTART",
+        "LOCALNET_PRIVATE",
+        "ND6ALT",
+        "RESTRICTED_RECV",
+        "AWDL",
+        "NOACKPRI",
+        "ECN_ENABLE",
+        "CHANNEL_DRV",
+        "FASTLN_ON"
+      ]
+    },
+    "Options": {
+      "Options": "6460",
+      "Values": [
+        "TSO4",
+        "TSO6",
+        "CHANNEL_IO",
+        "PARTIAL_CSUM",
+        "ZEROINVERT_CSUM"
+      ]
+    },
+    "Hwassist": {
+      "Hwassist": "703000",
+      "Values": [
+        "CSUM_PARTIAL",
+        "CSUM_ZERO_INVERT",
+        "MULTIPAGES",
+        "TSO_V4",
+        "TSO_V6"
+      ]
+    },
+    "Ether": "32:20:13:c9:cd:16",
+    "Inet6": [
+      {
+        "Inet6": "fe80::3020:13ff:fec9:cd16",
+        "Interface": "awdl0",
+        "Prefixlen": "64",
+        "Scopeid": "0x10"
+      }
+    ],
+    "Netif": "7C600817-6F00-4270-B4AD-053C288318DC",
+    "Flowswitch": "17317F66-ED4D-4581-AD1E-518A9C3BA58E",
+    "Media": "autoselect",
+    "Status": "active",
+    "Type": "Wi-Fi",
+    "Agent": [
+      {
+        "Domain": "Skywalk",
+        "Type": "NetIf",
+        "Flags": "0xa443",
+        "Desc": "\u0022Userspace Networking\u0022"
+      },
+      {
+        "Domain": "Skywalk",
+        "Type": "FlowSwitch",
+        "Flags": "0x4403",
+        "Desc": "\u0022Userspace Networking\u0022"
+      },
+      {
+        "Domain": "com.apple.wifip2pd",
+        "Type": "AWDL",
+        "Flags": "0x203",
+        "Desc": "\u0022com.apple.wifip2pd AWDL\u0022"
+      }
+    ],
+    "Scheduler": "FQ_CODEL",
+    "Routermode4": "disabled",
+    "Routermode6": "disabled"
+  },
+  {
+    "InterfaceName": "llw0",
+    "Flags": {
+      "Flags": "8863",
+      "Values": [
+        "UP",
+        "BROADCAST",
+        "SMART",
+        "RUNNING",
+        "SIMPLEX",
+        "MULTICAST"
+      ]
+    },
+    "Mtu": "1500",
+    "Index": "17",
+    "Eflags": {
+      "Eflags": "45200090",
+      "Values": [
+        "ADV_REPORT",
+        "TXSTART",
+        "NOACKPRI",
+        "ECN_ENABLE",
+        "CHANNEL_DRV",
+        "FASTLN_ON"
+      ]
+    },
+    "Xflags": {
+      "Xflags": "400",
+      "Values": [
+        "LOWLAT"
+      ]
+    },
+    "Options": {
+      "Options": "400",
+      "Values": [
+        "CHANNEL_IO"
+      ]
+    },
+    "Ether": "32:20:13:c9:cd:16",
+    "Inet6": [
+      {
+        "Inet6": "fe80::3020:13ff:fec9:cd16",
+        "Interface": "llw0",
+        "Prefixlen": "64",
+        "Scopeid": "0x11"
+      }
+    ],
+    "Netif": "704816E0-6375-42CA-B517-EA2B261380CE",
+    "Media": "autoselect",
+    "Status": "inactive",
+    "Type": "Wi-Fi",
+    "Agent": [
+      {
+        "Domain": "Skywalk",
+        "Type": "NetIf",
+        "Flags": "0x4c3",
+        "Desc": "\u0022Userspace Networking\u0022"
+      }
+    ],
+    "Scheduler": "FQ_CODEL",
+    "Routermode4": "disabled",
+    "Routermode6": "disabled"
+  },
+  {
+    "InterfaceName": "utun0",
+    "Flags": {
+      "Flags": "8051",
+      "Values": [
+        "UP",
+        "POINTOPOINT",
+        "RUNNING",
+        "MULTICAST"
+      ]
+    },
+    "Mtu": "1380",
+    "Index": "19",
+    "Eflags": {
+      "Eflags": "1002080",
+      "Values": [
+        "TXSTART",
+        "NOAUTOIPV6LL",
+        "ECN_ENABLE"
+      ]
+    },
+    "Xflags": {
+      "Xflags": "4",
+      "Values": [
+        "NOAUTONX"
+      ]
+    },
+    "Inet6": [
+      {
+        "Inet6": "fe80::4f0:ab1c:65fc:8ec9",
+        "Interface": "utun0",
+        "Prefixlen": "64",
+        "Scopeid": "0x13"
+      }
+    ],
+    "Scheduler": "FQ_CODEL",
+    "Routermode4": "disabled",
+    "Routermode6": "disabled"
+  },
+  {
+    "InterfaceName": "utun1",
+    "Flags": {
+      "Flags": "8051",
+      "Values": [
+        "UP",
+        "POINTOPOINT",
+        "RUNNING",
+        "MULTICAST"
+      ]
+    },
+    "Mtu": "1500",
+    "Index": "20",
+    "Eflags": {
+      "Eflags": "1002080",
+      "Values": [
+        "TXSTART",
+        "NOAUTOIPV6LL",
+        "ECN_ENABLE"
+      ]
+    },
+    "Xflags": {
+      "Xflags": "4",
+      "Values": [
+        "NOAUTONX"
+      ]
+    },
+    "Inet6": [
+      {
+        "Inet6": "fe80::cbd0:2d20:aced:ba92",
+        "Interface": "utun1",
+        "Prefixlen": "64",
+        "Scopeid": "0x14"
+      }
+    ],
+    "Agent": [
+      {
+        "Domain": "com.apple.rapport",
+        "Type": "RapportNetworkAgent",
+        "Flags": "0x7c3",
+        "Desc": "\u0022Rapport Network Agent\u0022"
+      }
+    ],
+    "Scheduler": "FQ_CODEL",
+    "Routermode4": "disabled",
+    "Routermode6": "disabled"
+  },
+  {
+    "InterfaceName": "utun2",
+    "Flags": {
+      "Flags": "8051",
+      "Values": [
+        "UP",
+        "POINTOPOINT",
+        "RUNNING",
+        "MULTICAST"
+      ]
+    },
+    "Mtu": "2000",
+    "Index": "21",
+    "Eflags": {
+      "Eflags": "1002080",
+      "Values": [
+        "TXSTART",
+        "NOAUTOIPV6LL",
+        "ECN_ENABLE"
+      ]
+    },
+    "Xflags": {
+      "Xflags": "4",
+      "Values": [
+        "NOAUTONX"
+      ]
+    },
+    "Inet6": [
+      {
+        "Inet6": "fe80::a7e0:c53:23ee:e7cc",
+        "Interface": "utun2",
+        "Prefixlen": "64",
+        "Scopeid": "0x15"
+      }
+    ],
+    "Agent": [
+      {
+        "Domain": "ids501",
+        "Type": "clientchannel",
+        "Flags": "0xc3",
+        "Desc": "\u0022IDSNexusAgent ids501  clientchannel\u0022"
+      }
+    ],
+    "Scheduler": "FQ_CODEL",
+    "Routermode4": "disabled",
+    "Routermode6": "disabled"
+  },
+  {
+    "InterfaceName": "utun3",
+    "Flags": {
+      "Flags": "8051",
+      "Values": [
+        "UP",
+        "POINTOPOINT",
+        "RUNNING",
+        "MULTICAST"
+      ]
+    },
+    "Mtu": "1000",
+    "Index": "22",
+    "Eflags": {
+      "Eflags": "1002080",
+      "Values": [
+        "TXSTART",
+        "NOAUTOIPV6LL",
+        "ECN_ENABLE"
+      ]
+    },
+    "Xflags": {
+      "Xflags": "4",
+      "Values": [
+        "NOAUTONX"
+      ]
+    },
+    "Inet6": [
+      {
+        "Inet6": "fe80::ce81:b1c:bd2c:69e",
+        "Interface": "utun3",
+        "Prefixlen": "64",
+        "Scopeid": "0x16"
+      }
+    ],
+    "Agent": [
+      {
+        "Domain": "ids501",
+        "Type": "transport",
+        "Flags": "0x4c3",
+        "Desc": "\u0022IDSTransportAgent ids501  transport\u0022"
+      }
+    ],
+    "Scheduler": "FQ_CODEL",
+    "Routermode4": "disabled",
+    "Routermode6": "disabled"
+  },
+  {
+    "InterfaceName": "utun4",
+    "Flags": {
+      "Flags": "8051",
+      "Values": [
+        "UP",
+        "POINTOPOINT",
+        "RUNNING",
+        "MULTICAST"
+      ]
+    },
+    "Mtu": "1280",
+    "Index": "28",
+    "Eflags": {
+      "Eflags": "5002080",
+      "Values": [
+        "TXSTART",
+        "NOAUTOIPV6LL",
+        "ECN_ENABLE",
+        "CHANNEL_DRV"
+      ]
+    },
+    "Xflags": {
+      "Xflags": "4",
+      "Values": [
+        "NOAUTONX"
+      ]
+    },
+    "Options": {
+      "Options": "6460",
+      "Values": [
+        "TSO4",
+        "TSO6",
+        "CHANNEL_IO",
+        "PARTIAL_CSUM",
+        "ZEROINVERT_CSUM"
+      ]
+    },
+    "Hwassist": {
+      "Hwassist": "703000",
+      "Values": [
+        "CSUM_PARTIAL",
+        "CSUM_ZERO_INVERT",
+        "MULTIPAGES",
+        "TSO_V4",
+        "TSO_V6"
+      ]
+    },
+    "Netif": "37788120-6EC9-48F6-ACAF-10D9CBCA5049",
+    "Flowswitch": "B2A08538-EE0B-4642-9831-B0B06DCE4103",
+    "Agent": [
+      {
+        "Domain": "Skywalk",
+        "Type": "NetIf",
+        "Flags": "0x8443",
+        "Desc": "\u0022Userspace Networking\u0022"
+      },
+      {
+        "Domain": "Skywalk",
+        "Type": "FlowSwitch",
+        "Flags": "0x4403",
+        "Desc": "\u0022Userspace Networking\u0022"
+      },
+      {
+        "Domain": "NetworkExtension",
+        "Type": "VPN",
+        "Flags": "0xf",
+        "Desc": "\u0022VPN Tailscale\u0022"
+      }
+    ],
+    "Scheduler": "FQ_CODEL",
+    "Routermode4": "disabled",
+    "Routermode6": "disabled"
+  },
+  {
+    "InterfaceName": "vmenet0",
+    "Flags": {
+      "Flags": "8963",
+      "Values": [
+        "UP",
+        "BROADCAST",
+        "SMART",
+        "RUNNING",
+        "PROMISC",
+        "SIMPLEX",
+        "MULTICAST"
+      ]
+    },
+    "Mtu": "1500",
+    "Index": "23",
+    "Eflags": {
+      "Eflags": "51008080",
+      "Values": [
+        "TXSTART",
+        "ROUTER4",
+        "ECN_ENABLE",
+        "SENDLIST",
+        "FASTLN_ON"
+      ]
+    },
+    "Ether": "fe:98:ef:22:08:4b",
+    "Media": "autoselect",
+    "Status": "active",
+    "Type": "Ethernet",
+    "Scheduler": "FQ_CODEL",
+    "Routermode4": "enabled",
+    "Routermode6": "disabled"
+  },
+  {
+    "InterfaceName": "bridge100",
+    "Flags": {
+      "Flags": "8863",
+      "Values": [
+        "UP",
+        "BROADCAST",
+        "SMART",
+        "RUNNING",
+        "SIMPLEX",
+        "MULTICAST"
+      ]
+    },
+    "Mtu": "1500",
+    "Index": "24",
+    "Eflags": {
+      "Eflags": "41810000",
+      "Values": [
+        "CLONE",
+        "CL2K",
+        "ECN_ENABLE",
+        "FASTLN_ON"
+      ]
+    },
+    "Options": {
+      "Options": "3",
+      "Values": [
+        "RXCSUM",
+        "TXCSUM"
+      ]
+    },
+    "Hwassist": {
+      "Hwassist": "100067",
+      "Values": [
+        "CSUM_IP",
+        "CSUM_TCP",
+        "CSUM_UDP",
+        "CSUM_TCPIPV6",
+        "CSUM_UDPIPV6",
+        "MULTIPAGES"
+      ]
+    },
+    "Ether": "62:3e:5f:88:da:64",
+    "Inet": [
+      {
+        "Inet": "10.211.55.2",
+        "Netmask": "0xffffff00",
+        "Broadcast": "10.211.55.255"
+      }
+    ],
+    "Inet6": [
+      {
+        "Inet6": "fe80::603e:5fff:fe88:da64",
+        "Interface": "bridge100",
+        "Prefixlen": "64",
+        "Scopeid": "0x18"
+      },
+      {
+        "Inet6": "fdb2:2c26:f4e4::1",
+        "Prefixlen": "64"
+      }
+    ],
+    "Configuration": {
+      "Id": "0:0:0:0:0:0",
+      "Priority": "0",
+      "Hellotime": "0",
+      "Fwddelay": "0",
+      "Maxage": "0",
+      "Holdcnt": "0",
+      "Proto": "stp",
+      "Maxaddr": "100",
+      "Timeout": "1200",
+      "Root": {
+        "Id": "0:0:0:0:0:0",
+        "Priority": "0",
+        "Ifcost": "0",
+        "Port": "0",
+        "Ipfilter": "disabled",
+        "Flags": "0x0",
+        "Member": {
+          "Member": "vmenet0",
+          "Flags": {
+            "Flags": "3",
+            "Values": [
+              "LEARNING",
+              "DISCOVER"
+            ]
+          },
+          "Ifmaxaddr": "0",
+          "Port": "23",
+          "Priority": "0"
+        }
+      }
+    },
+    "Member": [
+      {
+        "Member": "vmenet2",
+        "Flags": {
+          "Flags": "3",
+          "Values": [
+            "LEARNING",
+            "DISCOVER"
+          ]
+        },
+        "Ifmaxaddr": "0",
+        "Port": "27",
+        "Priority": "0"
+      }
+    ],
+    "Media": "autoselect",
+    "Status": "active",
+    "Desc": "com.apple.NetworkSharing",
+    "Routermode4": "disabled",
+    "Routermode6": "disabled"
+  },
+  {
+    "InterfaceName": "vmenet1",
+    "Flags": {
+      "Flags": "8963",
+      "Values": [
+        "UP",
+        "BROADCAST",
+        "SMART",
+        "RUNNING",
+        "PROMISC",
+        "SIMPLEX",
+        "MULTICAST"
+      ]
+    },
+    "Mtu": "1500",
+    "Index": "25",
+    "Eflags": {
+      "Eflags": "51008080",
+      "Values": [
+        "TXSTART",
+        "ROUTER4",
+        "ECN_ENABLE",
+        "SENDLIST",
+        "FASTLN_ON"
+      ]
+    },
+    "Ether": "96:2e:b6:37:78:40",
+    "Media": "autoselect",
+    "Status": "active",
+    "Type": "Ethernet",
+    "Scheduler": "FQ_CODEL",
+    "Routermode4": "enabled",
+    "Routermode6": "disabled"
+  },
+  {
+    "InterfaceName": "bridge101",
+    "Flags": {
+      "Flags": "8863",
+      "Values": [
+        "UP",
+        "BROADCAST",
+        "SMART",
+        "RUNNING",
+        "SIMPLEX",
+        "MULTICAST"
+      ]
+    },
+    "Mtu": "1500",
+    "Index": "26",
+    "Eflags": {
+      "Eflags": "41810000",
+      "Values": [
+        "CLONE",
+        "CL2K",
+        "ECN_ENABLE",
+        "FASTLN_ON"
+      ]
+    },
+    "Options": {
+      "Options": "3",
+      "Values": [
+        "RXCSUM",
+        "TXCSUM"
+      ]
+    },
+    "Hwassist": {
+      "Hwassist": "100067",
+      "Values": [
+        "CSUM_IP",
+        "CSUM_TCP",
+        "CSUM_UDP",
+        "CSUM_TCPIPV6",
+        "CSUM_UDPIPV6",
+        "MULTIPAGES"
+      ]
+    },
+    "Ether": "62:3e:5f:88:da:65",
+    "Inet": [
+      {
+        "Inet": "10.37.129.2",
+        "Netmask": "0xffffff00",
+        "Broadcast": "10.37.129.255"
+      }
+    ],
+    "Inet6": [
+      {
+        "Inet6": "fe80::603e:5fff:fe88:da65",
+        "Interface": "bridge101",
+        "Prefixlen": "64",
+        "Scopeid": "0x1a"
+      },
+      {
+        "Inet6": "fdb2:2c26:f4e4:1::1",
+        "Prefixlen": "64"
+      }
+    ],
+    "Configuration": {
+      "Id": "0:0:0:0:0:0",
+      "Priority": "0",
+      "Hellotime": "0",
+      "Fwddelay": "0",
+      "Maxage": "0",
+      "Holdcnt": "0",
+      "Proto": "stp",
+      "Maxaddr": "100",
+      "Timeout": "1200",
+      "Root": {
+        "Id": "0:0:0:0:0:0",
+        "Priority": "0",
+        "Ifcost": "0",
+        "Port": "0",
+        "Ipfilter": "disabled",
+        "Flags": "0x0",
+        "Member": {
+          "Member": "vmenet1",
+          "Flags": {
+            "Flags": "3",
+            "Values": [
+              "LEARNING",
+              "DISCOVER"
+            ]
+          },
+          "Ifmaxaddr": "0",
+          "Port": "25",
+          "Priority": "0"
+        }
+      }
+    },
+    "Media": "autoselect",
+    "Status": "active",
+    "Desc": "com.apple.NetworkSharing",
+    "Routermode4": "disabled",
+    "Routermode6": "disabled"
+  }
+]

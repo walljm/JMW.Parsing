@@ -1,18 +1,11 @@
 ﻿using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using CommandLine;
 using JMW.Parsing;
 
-internal class Program
+internal partial class Program
 {
-    public class Options
-    {
-        [Option("json", Required = false)]
-        public bool UseJson { get; set; }
-
-        [Option("ifconfig", Required = false)]
-        public bool UseIfconfig { get; set; }
-    }
-
+    [DynamicDependency(DynamicallyAccessedMemberTypes.All, typeof(Options))]
     private static void Main(string[] args)
     {
         Options? options = null;
@@ -22,7 +15,7 @@ internal class Program
                {
                    options = o;
                });
-        
+
         if (options is null)
         {
             return;
