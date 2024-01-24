@@ -1,0 +1,39 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.8.34408.163
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "JMW.Parser", "src\JMW.Parser\JMW.Parser.csproj", "{11637AEE-ACE9-482B-9ED2-885098356697}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "JMW.Parsing", "src\JMW.Parsing\JMW.Parsing.csproj", "{5619AAC6-E4CD-48EF-8B6D-4DB27966E348}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{59B90758-D79A-4BCC-8B8B-1B6C9CBB222A}"
+	ProjectSection(SolutionItems) = preProject
+		.gitignore = .gitignore
+		LICENSE = LICENSE
+		output.txt = output.txt
+		README.md = README.md
+	EndProjectSection
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{11637AEE-ACE9-482B-9ED2-885098356697}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{11637AEE-ACE9-482B-9ED2-885098356697}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{11637AEE-ACE9-482B-9ED2-885098356697}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{11637AEE-ACE9-482B-9ED2-885098356697}.Release|Any CPU.Build.0 = Release|Any CPU
+		{5619AAC6-E4CD-48EF-8B6D-4DB27966E348}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{5619AAC6-E4CD-48EF-8B6D-4DB27966E348}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{5619AAC6-E4CD-48EF-8B6D-4DB27966E348}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{5619AAC6-E4CD-48EF-8B6D-4DB27966E348}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {B6A46937-A708-432D-B836-FA66FD942A75}
+	EndGlobalSection
+EndGlobal

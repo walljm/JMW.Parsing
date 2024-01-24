@@ -5,42 +5,67 @@ using System.Text;
 
 namespace JMW.Parsing;
 
-public record Pair(string Key, string Value);
-
-public static class Parser
+public enum OutputType
 {
-    private const string NewLine = "<newline>";
-    private const string Next = "<next>";
-    private const string Options = "<options>";
-    private const string Group = "<group>";
-    private const string GroupNext = "<groupnext>";
+    Json,
+    KeyValue,
+}
 
-    private static readonly Dictionary<string, string> SingleKeywords = new(){
-        {"flags", Options},
-        {"eflags", Options},
-        {"xflags", Options},
-        {"hwassist", Options},
-        {"mtu", Next},
-        {"ether", Next},
-        {"media", NewLine},
-        {"status", Next},
-        {"priority", Next},
-        {"type", NewLine},
-        {"desc", NewLine},
-        {"scheduler", Next},
-        {"routermode4", Next},
-        {"routermode6", Next},
-        {"netif", Next},
-        {"flowswitch", Next},
-        {"options", Options},
-        {"inet", Next},
-        {"netmask", Next},
-        {"broadcast", Next},
-        {"inet6", Next},
-        {"prefixlen", Next},
-        {"scopeid", Next},
-        {"index", Next},
-    };
+public record ParsingOptions(OutputType OutputType);
+
+public static class Ifconfig
+{
+    public static void Parse(TextReader output, ParsingOptions options)
+    {
+        var blocks = GetBlocks(output);
+
+        foreach (var block in blocks)
+        {
+            using var blockReader = new StringReader(block);
+            var tokens = Tokenize(blockReader);
+            var pairs = GetPairs(tokens);
+            if (options.OutputType == OutputType.KeyValue)
+            {
+                foreach (var pair in pairs)
+                {
+                    Console.WriteLine($"{CleanKey(pair.Key)}: {pair.Value}");
+                }
+            }
+            else if (options.OutputType == OutputType.Json)
+            {
+
+            }
+        }
+    }
+
+    private static string CleanKey(string key)
+    {
+        // remove non alphabet chars
+        // convert to PascalCase
+        var sb = new StringBuilder();
+        foreach (var c in key)
+        {
+            if (char.IsDigit(c) || char.IsLetter(c))
+            {
+                sb.Append(c);
+            }
+            else if (char.IsWhiteSpace(c))
+            {
+                if (sb.Length > 0)
+                {
+                    sb[^1] = char.ToUpper(sb[^1]);
+                }
+            }
+        }
+        return sb.ToString();
+    }
+
+
+    private const string newLine = "<newline>";
+    private const string next = "<next>";
+    private const string options = "<options>";
+    private const string group = "<group>";
+    private const string groupNext = "<groupnext>";
 
     private record GroupDefinition(
         string Kind,
@@ -48,52 +73,81 @@ public static class Parser
         Dictionary<string, HashSet<string>> MultipleKeywords
         );
 
-    private static readonly Dictionary<string, GroupDefinition> GroupKeywords = new()
-    {
-        {"Configuration:", new(NewLine, new(){
-            {"id", Next},
-            {"priority", Next},
-            {"hellotime", Next},
-            {"fwdelay", Next},
-            {"maxage", Next},
-            {"holdcnt", Next},
-            {"proto", Next},
-            {"maxaddr", Next},
-            {"timeout", Next},
-            {"ifcost", Next},
-            {"port", Next},
-            {"ipfilter", Next},
-            {"flags", Next}
-        }, new())},
+    private record Pair(string Key, string Value);
 
-        {"member", new(GroupNext, new () {
-            {"flags", Next},
-            {"ifmaxaddr", Next},
-            {"port", Next},
-            {"priority", Next},
-            {"hostfilter", Next},
-            {"hw", Next},
-            {"ip", Next}
-        }, new(){ {"path", new(){"cost"}}})},
-
-        {"agent", new(Group, new() {
-            {"domain", Next},
-            {"type", Next},
-            {"flags", Next},
-            {"desc", NewLine}
-        }, new())},
-
-        {"root", new(Group, new(){
-            {"id", Next},
-            {"priority", Next},
-            {"ifcost", Next},
-            {"port", Next},
-            {"ipfilter", Next},
-            {"flags", Next}
-        }, new())},
+    private static readonly Dictionary<string, string> singleKeywords = new(){
+        {"flags", options},
+        {"eflags", options},
+        {"xflags", options},
+        {"hwassist", options},
+        {"mtu", next},
+        {"ether", next},
+        {"media", newLine},
+        {"status", next},
+        {"priority", next},
+        {"type", newLine},
+        {"desc", newLine},
+        {"scheduler", next},
+        {"routermode4", next},
+        {"routermode6", next},
+        {"netif", next},
+        {"flowswitch", next},
+        {"options", options},
+        {"inet", next},
+        {"netmask", next},
+        {"broadcast", next},
+        {"inet6", next},
+        {"prefixlen", next},
+        {"scopeid", next},
+        {"index", next},
     };
 
-    private static readonly Dictionary<string, HashSet<string>> MultipleKeywords = new()
+    private static readonly Dictionary<string, GroupDefinition> groupKeywords = new()
+    {
+        {"Configuration:", new(newLine, new(){
+            {"id", next},
+            {"priority", next},
+            {"hellotime", next},
+            {"fwdelay", next},
+            {"maxage", next},
+            {"holdcnt", next},
+            {"proto", next},
+            {"maxaddr", next},
+            {"timeout", next},
+            {"ifcost", next},
+            {"port", next},
+            {"ipfilter", next},
+            {"flags", next}
+        }, [])},
+
+        {"member", new(groupNext, new () {
+            {"flags", next},
+            {"ifmaxaddr", next},
+            {"port", next},
+            {"priority", next},
+            {"hostfilter", next},
+            {"hw", next},
+            {"ip", next}
+        }, new(){ {"path", new(){"cost"}}})},
+
+        {"agent", new(group, new() {
+            {"domain", next},
+            {"type", next},
+            {"flags", next},
+            {"desc", newLine}
+        }, [])},
+
+        {"root", new(group, new(){
+            {"id", next},
+            {"priority", next},
+            {"ifcost", next},
+            {"port", next},
+            {"ipfilter", next},
+            {"flags", next}
+        }, [])},
+    };
+
+    private static readonly Dictionary<string, HashSet<string>> multipleKeywords = new()
     {
         {"nd6", new(){"options"}},
         {"root", new(){"id"}},
@@ -130,7 +184,7 @@ public static class Parser
         return false;
     }
 
-    public static IEnumerable<Pair> GetPairs(IEnumerable<string> tokens)
+    private static IEnumerable<Pair> GetPairs(IEnumerable<string> tokens)
     {
         var queue = new Queue<string>();
         var enumerator = tokens.GetEnumerator();
@@ -140,12 +194,11 @@ public static class Parser
 
         while (TryGetValue(enumerator, queue, out var token))
         {
-            if (GroupKeywords.ContainsKey(token))
+            if (groupKeywords.TryGetValue(token, out var group))
             {
-                var group = GroupKeywords[token];
                 var key = token;
 
-                if (group.Kind == GroupNext)
+                if (group.Kind == groupNext)
                 {
                     if (TryGetValue(enumerator, queue, out var value))
                     {
@@ -170,7 +223,7 @@ public static class Parser
                             yield return item;
                         }
                     }
-                    else if (token == NewLine)
+                    else if (token == newLine)
                     {
                         continue;
                     }
@@ -181,21 +234,20 @@ public static class Parser
                     }
                 }
             }
-            else if (MultipleKeywords.ContainsKey(token))
+            else if (multipleKeywords.ContainsKey(token))
             {
-                foreach (var item in HandleMultipleKeywords(queue, enumerator, MultipleKeywords, token, token))
+                foreach (var item in HandleMultipleKeywords(queue, enumerator, multipleKeywords, token, token))
                 {
                     yield return item;
                 }
             }
-            else if (SingleKeywords.ContainsKey(token))
+            else if (singleKeywords.TryGetValue(token, out var kind))
             {
                 if (token is null)
                 {
                     throw new InvalidOperationException("Token can't be null");
                 }
 
-                var kind = SingleKeywords[token];
                 foreach (var item in HandleSingleKeyword(queue, enumerator, kind, token))
                 {
                     yield return item;
@@ -242,18 +294,18 @@ public static class Parser
 
     private static IEnumerable<Pair> HandleSingleKeyword(Queue<string> queue, IEnumerator<string> enumerator, string kind, string token)
     {
-        if (kind == NewLine)
+        if (kind == newLine)
         {
             // grab tokens until newline.
             var value = string.Empty;
-            while (TryGetValue(enumerator, queue, out var next) && next != NewLine)
+            while (TryGetValue(enumerator, queue, out var next) && next != newLine)
             {
                 value += $" {next}";
             }
             // last item is a newline, which we can ignore,
             yield return new Pair(token, value.Trim());
         }
-        else if (kind == Next)
+        else if (kind == next)
         {
             if (TryGetValue(enumerator, queue, out var value))
             {
@@ -273,7 +325,7 @@ public static class Parser
                 }
             }
         }
-        else if (kind == Options)
+        else if (kind == options)
         {
             if (TryGetValue(enumerator, queue, out var value))
             {
@@ -320,7 +372,7 @@ public static class Parser
                     yield return sb.ToString();
                     sb.Clear();
                 }
-                yield return NewLine;
+                yield return newLine;
                 continue;
             }
 
@@ -353,13 +405,14 @@ public static class Parser
         yield break;
     }
 
-    public static IEnumerable<string> GetBlocks(string output)
+    public static IEnumerable<string> GetBlocks(TextReader output)
     {
         var sb = new StringBuilder();
         var last = '\0';
-        foreach (var c in output)
+        int? c;
+        while ((c = output.Read()) != -1)
         {
-            if (!char.IsWhiteSpace(c) && last == '\n')
+            if (!char.IsWhiteSpace((char)c) && last == '\n')
             {
                 // new block
                 yield return sb.ToString();
@@ -371,7 +424,7 @@ public static class Parser
                 sb.Append(c);
             }
 
-            last = c;
+            last = (char)c;
         }
     }
 
@@ -380,9 +433,9 @@ public static class Parser
         var chars = target.ToDictionary(k => k, v => 0);
         for (int i = 0; i < sb.Length; i++)
         {
-            if (chars.ContainsKey(sb[i]))
+            if (chars.TryGetValue(sb[i], out var value))
             {
-                chars[sb[i]]++;
+                chars[sb[i]] = ++value;
             }
         }
         return chars;
