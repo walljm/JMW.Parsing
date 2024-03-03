@@ -11,15 +11,9 @@ internal partial class Program
         Options? options = null;
 
         Parser.Default.ParseArguments<Options>(args)
-               .WithParsed(o =>
-               {
-                   options = o;
-               });
+            .WithParsed(o => { options = o; });
 
-        if (options is null)
-        {
-            return;
-        }
+        if (options is null) return;
 
         var parsingOpts = new ParsingOptions(options.UseJson ? OutputType.Json : OutputType.KeyValue);
         if (options.UseIfconfig)
@@ -36,6 +30,5 @@ internal partial class Program
             Ifconfig.Parse(reader, parsingOpts);
             process.WaitForExit();
         }
-
     }
 }

@@ -1,5 +1,3 @@
-
-
 using System.Diagnostics.CodeAnalysis;
 using System.Text;
 using System.Text.Json;
@@ -9,7 +7,7 @@ namespace JMW.Parsing;
 public enum OutputType
 {
     Json,
-    KeyValue,
+    KeyValue
 }
 
 public record ParsingOptions(OutputType OutputType);
@@ -21,13 +19,8 @@ public static class Ifconfig
     public static void Parse(TextReader output, ParsingOptions options)
     {
         if (options.OutputType == OutputType.KeyValue)
-        {
             OutputKeyValues(output);
-        }
-        else if (options.OutputType == OutputType.Json)
-        {
-            OutputJson(output);
-        }
+        else if (options.OutputType == OutputType.Json) OutputJson(output);
     }
 
     public static void OutputKeyValues(TextReader output)
@@ -41,10 +34,7 @@ public static class Ifconfig
             using var blockReader = new StringReader(block);
             var pairs = GetPairs(Tokenize(blockReader));
 
-            foreach (var pair in pairs)
-            {
-                pair.WriteKeyValues(Console.Out);
-            }
+            foreach (var pair in pairs) pair.WriteKeyValues(Console.Out);
         }
     }
 
@@ -75,14 +65,14 @@ public static class Ifconfig
 
         writer.WriteEndArray();
         writer.Flush();
-        string json = Encoding.UTF8.GetString(stream.ToArray());
+        var json = Encoding.UTF8.GetString(stream.ToArray());
         Console.WriteLine(json);
     }
 
     private static void WritePairsJson(Utf8JsonWriter writer, IEnumerable<Pair> pairs)
     {
         Pair? last = null;
-        bool arrayStarted = false;
+        var arrayStarted = false;
         foreach (var pair in pairs)
         {
             if (arrayPairs.Contains(pair.Key))
@@ -113,7 +103,7 @@ public static class Ifconfig
             pair.WriteJson(writer);
         }
     }
-    
+
     private static string CleanKey(string key)
     {
         // remove non alphabet chars
@@ -123,13 +113,12 @@ public static class Ifconfig
         foreach (var current in key)
         {
             if (char.IsDigit(current) || char.IsLetter(current))
-            {
                 sb.Append(last is null || char.IsWhiteSpace(last.Value)
                     ? char.ToUpper(current)
                     : current);
-            }
             last = current;
         }
+
         return sb.ToString();
     }
 
@@ -144,34 +133,22 @@ public static class Ifconfig
             if (Children?.Length > 0)
             {
                 if (arrayStarted)
-                {
                     writer.WriteStartObject();
-                }
                 else
-                {
                     writer.WriteStartObject(key);
-                }
 
-                if (Value.Length > 0)
-                {
-                    writer.WriteString(key, Value);
-                }
+                if (Value.Length > 0) writer.WriteString(key, Value);
                 if (ChildType == "array")
                 {
                     writer.WriteStartArray("Values");
-                    foreach (var child in Children)
-                    {
-                        writer.WriteStringValue(child.Value);
-                    }
+                    foreach (var child in Children) writer.WriteStringValue(child.Value);
                     writer.WriteEndArray();
                 }
                 else
                 {
-                    foreach (var child in Children)
-                    {
-                        child.WriteJson(writer);
-                    }
+                    foreach (var child in Children) child.WriteJson(writer);
                 }
+
                 writer.WriteEndObject();
             }
             else
@@ -184,27 +161,25 @@ public static class Ifconfig
         {
             writer.WriteLine($"{string.Empty.PadLeft(indent)}{CleanKey(Key)}: {Value}");
             if (Children?.Length > 0)
-            {
                 foreach (var child in Children)
-                {
                     child.WriteKeyValues(writer, indent + 4);
-                }
-            }
         }
     }
 
-    private static readonly HashSet<string> arrayPairs = new(){
+    private static readonly HashSet<string> arrayPairs = new()
+    {
         "inet",
         "inet6",
         "agent",
-        "member",
+        "member"
     };
 
     private record GroupDefinition(
         string Kind,
         Dictionary<string, string> Keywords,
         Dictionary<string, MultipleDefinition> MultipleKeywords
-        );
+    );
+
     private record MultipleDefinition(
         string Kind,
         Dictionary<string, string> Keywords
@@ -217,98 +192,126 @@ public static class Ifconfig
     private const string groupNext = "<groupnext>";
     private const string drop = "<drop>";
 
-    private static readonly Dictionary<string, string> singleKeywords = new(){
-        {"flags", options},
-        {"eflags", options},
-        {"xflags", options},
-        {"hwassist", options},
-        {"mtu", next},
-        {"ether", next},
-        {"media", newLine},
-        {"status", next},
-        {"priority", next},
-        {"type", newLine},
-        {"desc", newLine},
-        {"scheduler", next},
-        {"routermode4", next},
-        {"routermode6", next},
-        {"netif", next},
-        {"flowswitch", next},
-        {"options", options},
-        {"index", next},
+    private static readonly Dictionary<string, string> singleKeywords = new()
+    {
+        { "flags", options },
+        { "eflags", options },
+        { "xflags", options },
+        { "hwassist", options },
+        { "mtu", next },
+        { "ether", next },
+        { "media", newLine },
+        { "status", next },
+        { "priority", next },
+        { "type", newLine },
+        { "desc", newLine },
+        { "scheduler", next },
+        { "routermode4", next },
+        { "routermode6", next },
+        { "netif", next },
+        { "flowswitch", next },
+        { "options", options },
+        { "index", next }
     };
 
     private static readonly Dictionary<string, GroupDefinition> groupKeywords = new()
     {
-        {"Configuration:", new(newLine, new(){
-            {"id", next},
-            {"priority", next},
-            {"hellotime", next},
-            {"fwddelay", next},
-            {"maxage", next},
-            {"holdcnt", next},
-            {"proto", next},
-            {"maxaddr", next},
-            {"timeout", next},
-            {"ifcost", next},
-            {"port", next},
-            {"ipfilter", next},
-            {"flags", next},
-            {"root", group},
-        }, [])},
-
-        {"member", new(groupNext, new () {
-            {"flags", options},
-            {"ifmaxaddr", next},
-            {"port", next},
-            {"priority", next},
-            {"hostfilter", next},
-            {"hw", next},
-            {"ip", next}
-        }, new(){
-            {"path", new(next, new(){{"cost", next}})}})
+        {
+            "Configuration:", new GroupDefinition(newLine, new Dictionary<string, string>
+            {
+                { "id", next },
+                { "priority", next },
+                { "hellotime", next },
+                { "fwddelay", next },
+                { "maxage", next },
+                { "holdcnt", next },
+                { "proto", next },
+                { "maxaddr", next },
+                { "timeout", next },
+                { "ifcost", next },
+                { "port", next },
+                { "ipfilter", next },
+                { "flags", next },
+                { "root", group }
+            }, [])
         },
 
-        {"agent", new(group, new() {
-            {"domain", next},
-            {"type", next},
-            {"flags", next},
-            {"desc", newLine}
-        }, [])},
+        {
+            "member", new GroupDefinition(groupNext, new Dictionary<string, string>
+            {
+                { "flags", options },
+                { "ifmaxaddr", next },
+                { "port", next },
+                { "priority", next },
+                { "hostfilter", next },
+                { "hw", next },
+                { "ip", next }
+            }, new Dictionary<string, MultipleDefinition>
+            {
+                { "path", new MultipleDefinition(next, new Dictionary<string, string> { { "cost", next } }) }
+            })
+        },
 
-        {"root", new(group, new(){
-            {"id", next},
-            {"priority", next},
-            {"ifcost", next},
-            {"port", next},
-            {"ipfilter", next},
-            {"flags", options},
-            {"member", group},
-        }, [])},
+        {
+            "agent", new GroupDefinition(group, new Dictionary<string, string>
+            {
+                { "domain", next },
+                { "type", next },
+                { "flags", next },
+                { "desc", newLine }
+            }, [])
+        },
 
-        {"inet6", new(groupNext, new() {
-            {"prefixlen", next},
-            {"scopeid", next},
-        }, [])},
-        {"inet", new(groupNext, new() {
-            {"netmask", next},
-            {"broadcast", next},
-        }, [])},
+        {
+            "root", new GroupDefinition(group, new Dictionary<string, string>
+            {
+                { "id", next },
+                { "priority", next },
+                { "ifcost", next },
+                { "port", next },
+                { "ipfilter", next },
+                { "flags", options },
+                { "member", group }
+            }, [])
+        },
+
+        {
+            "inet6", new GroupDefinition(groupNext, new Dictionary<string, string>
+            {
+                { "prefixlen", next },
+                { "scopeid", next }
+            }, [])
+        },
+        {
+            "inet", new GroupDefinition(groupNext, new Dictionary<string, string>
+            {
+                { "netmask", next },
+                { "broadcast", next }
+            }, [])
+        }
     };
 
     private static readonly Dictionary<string, MultipleDefinition> multipleKeywords = new()
     {
-        {"nd6",new(options, new(){{"options", options}})},
-        {"root",new(next, new(){{"id", next}})},
-        {"path",new(next, new(){{"cost", next}})},
-        {"state",new(next, new(){{"availability", next}})},
-        {"qosmarking",new(next, new(){{"enabled", next}})},
-        {"generation",new(next, new(){{"id", next}})},
-        {"uplink",new(next, new(){{"rate", next}})},
-        {"downlink",new(next, new(){{"rate", next}})},
-        {"low",new(next, new(){{"power", next}, {"mode", next}})},
-        {"link",new(next, new(){{ "rate", next}, {"quality", next}})},
-        {"multi",new(next, new(){{"layer", next}, {"packet", next }, { "logging", next }, { "(mpklog)", drop} })},
+        { "nd6", new MultipleDefinition(options, new Dictionary<string, string> { { "options", options } }) },
+        { "root", new MultipleDefinition(next, new Dictionary<string, string> { { "id", next } }) },
+        { "path", new MultipleDefinition(next, new Dictionary<string, string> { { "cost", next } }) },
+        { "state", new MultipleDefinition(next, new Dictionary<string, string> { { "availability", next } }) },
+        { "qosmarking", new MultipleDefinition(next, new Dictionary<string, string> { { "enabled", next } }) },
+        { "generation", new MultipleDefinition(next, new Dictionary<string, string> { { "id", next } }) },
+        { "uplink", new MultipleDefinition(next, new Dictionary<string, string> { { "rate", next } }) },
+        { "downlink", new MultipleDefinition(next, new Dictionary<string, string> { { "rate", next } }) },
+        { "low", new MultipleDefinition(next, new Dictionary<string, string> { { "power", next }, { "mode", next } }) },
+        {
+            "link",
+            new MultipleDefinition(next, new Dictionary<string, string> { { "rate", next }, { "quality", next } })
+        },
+        {
+            "multi",
+            new MultipleDefinition(next,
+                new Dictionary<string, string>
+                    { { "layer", next }, { "packet", next }, { "logging", next }, { "(mpklog)", drop } })
+        }
     };
 
     private static bool TryGetValue(
@@ -318,10 +321,7 @@ public static class Ifconfig
     )
     {
         // first try and get it from the queue.
-        if (queue.TryDequeue(out value))
-        {
-            return true;
-        }
+        if (queue.TryDequeue(out value)) return true;
         // not in the queue? get it from the enumerator.
         if (enumerator.MoveNext())
         {
@@ -342,34 +342,21 @@ public static class Ifconfig
         yield return new Pair("InterfaceName", enumerator.Current, []);
 
         while (TryGetValue(enumerator, queue, out var token))
-        {
             if (groupKeywords.TryGetValue(token, out var group))
             {
-                foreach (var item in HandleGroups(queue, enumerator, token, group))
-                {
-                    yield return item;
-                }
+                foreach (var item in HandleGroups(queue, enumerator, token, group)) yield return item;
             }
             else if (multipleKeywords.ContainsKey(token))
             {
                 foreach (var item in HandleMultipleKeywords(queue, enumerator, multipleKeywords, token, token))
-                {
                     yield return item;
-                }
             }
             else if (singleKeywords.TryGetValue(token, out var kind))
             {
-                if (token is null)
-                {
-                    throw new InvalidOperationException("Token can't be null");
-                }
+                if (token is null) throw new InvalidOperationException("Token can't be null");
 
-                foreach (var item in HandleSingleKeyword(queue, enumerator, kind, token))
-                {
-                    yield return item;
-                }
+                foreach (var item in HandleSingleKeyword(queue, enumerator, kind, token)) yield return item;
             }
-        }
     }
 
     private static IEnumerable<Pair> HandleGroups(
@@ -384,26 +371,19 @@ public static class Ifconfig
         var value = string.Empty;
 
         if (group.Kind == groupNext)
-        {
             pairChildren.AddRange(
                 HandleSingleKeyword(queue, enumerator, next, token)
             );
-        }
 
         while (TryGetValue(enumerator, queue, out var nextToken))
-        {
             if (group.Keywords.TryGetValue(nextToken, out var kind))
             {
                 if (groupKeywords.TryGetValue(nextToken, out var childGroup))
-                {
                     pairChildren.AddRange(HandleGroups(queue, enumerator, nextToken, childGroup));
-                }
                 else
-                {
                     pairChildren.AddRange(
                         HandleSingleKeyword(queue, enumerator, kind, nextToken)
                     );
-                }
             }
             else if (group.MultipleKeywords.ContainsKey(nextToken))
             {
@@ -420,7 +400,6 @@ public static class Ifconfig
                 queue.Enqueue(nextToken); // put it back on the stack.
                 break;
             }
-        }
 
         yield return new Pair(key, value ?? string.Empty, [.. pairChildren]);
     }
@@ -435,10 +414,7 @@ public static class Ifconfig
         var escape = false;
         foreach (var item in definition[token].Keywords)
         {
-            if (!TryGetValue(enumerator, queue, out var next))
-            {
-                yield break;
-            }
+            if (!TryGetValue(enumerator, queue, out var next)) yield break;
 
             if (!definition[token].Keywords.ContainsKey(next))
             {
@@ -446,16 +422,11 @@ public static class Ifconfig
                 escape = true;
                 break;
             }
-            if (item.Value != drop)
-            {
-                key += $" {next}";
-            }
+
+            if (item.Value != drop) key += $" {next}";
         }
 
-        if (escape)
-        {
-            yield break;
-        }
+        if (escape) yield break;
 
         HandleSingleKeyword(queue, enumerator, definition[token].Kind, token);
     }
@@ -470,10 +441,7 @@ public static class Ifconfig
         {
             // grab tokens until newline.
             var value = string.Empty;
-            while (TryGetValue(enumerator, queue, out var next) && next != newLine)
-            {
-                value += $" {next}";
-            }
+            while (TryGetValue(enumerator, queue, out var next) && next != newLine) value += $" {next}";
             // last item is a newline, which we can ignore,
             yield return new Pair(token, value.Trim(), []);
         }
@@ -485,10 +453,7 @@ public static class Ifconfig
                 {
                     var items = value.Split('%');
                     yield return new Pair(token, items[0], []);
-                    if (items.Length > 1)
-                    {
-                        yield return new Pair("interface", items[1], []);
-                    }
+                    if (items.Length > 1) yield return new Pair("interface", items[1], []);
                 }
                 else
                 {
@@ -504,9 +469,7 @@ public static class Ifconfig
                 var optionList = Array.Empty<Pair>();
 
                 if (items.Length > 1)
-                {
                     optionList = items[1].Trim('>').Split(',').Select(o => new Pair($"{token} item", o, [])).ToArray();
-                }
 
                 yield return new Pair(token, items[0], optionList, "array");
             }
@@ -525,10 +488,7 @@ public static class Ifconfig
         {
             if (c == '=')
             {
-                if (sb[^1] == ':')
-                {
-                    sb.Remove(sb.Length - 1, 1);
-                }
+                if (sb[^1] == ':') sb.Remove(sb.Length - 1, 1);
                 yield return sb.ToString();
                 sb.Clear();
                 continue;
@@ -545,19 +505,14 @@ public static class Ifconfig
                     yield return sb.ToString();
                     sb.Clear();
                 }
+
                 yield return newLine;
                 continue;
             }
 
-            if (sb.Length == 0)
-            {
-                continue;
-            }
+            if (sb.Length == 0) continue;
 
-            if (sb[^1] == ':')
-            {
-                sb.Remove(sb.Length - 1, 1);
-            }
+            if (sb[^1] == ':') sb.Remove(sb.Length - 1, 1);
             // sometimes the key:value pairs are separated
             //  by a single colon.  split these.
             var colonCount = CountChars(sb, ':');
@@ -585,7 +540,7 @@ public static class Ifconfig
         int? i;
         while ((i = output.Read()) != -1)
         {
-            char current = (char)i;
+            var current = (char)i;
             if (!char.IsWhiteSpace((char)current) && last == '\n')
             {
                 // new block
@@ -605,14 +560,9 @@ public static class Ifconfig
     private static Dictionary<char, int> CountChars(StringBuilder sb, params char[] target)
     {
         var chars = target.ToDictionary(k => k, v => 0);
-        for (int i = 0; i < sb.Length; i++)
-        {
+        for (var i = 0; i < sb.Length; i++)
             if (chars.TryGetValue(sb[i], out var value))
-            {
                 chars[sb[i]] = ++value;
-            }
-        }
         return chars;
     }
-
 }

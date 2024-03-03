@@ -1,11 +1,9 @@
-namespace JMW.Parsing.Tests
-{
-    public class IfconfigTests
-    {
-        [Fact]
-        public void ParseJsonTest()
-        {
+namespace JMW.Parsing.Tests;
 
-        }
+public class IfconfigTests
+{
+    [Fact]
+    public void ParseJsonTest()
+    {
     }
 }
