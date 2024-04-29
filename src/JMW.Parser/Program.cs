@@ -3,17 +3,27 @@ using System.Diagnostics.CodeAnalysis;
 using CommandLine;
 using JMW.Parsing;
 
-internal partial class Program
+internal class Program
 {
     [DynamicDependency(DynamicallyAccessedMemberTypes.All, typeof(Options))]
     private static void Main(string[] args)
     {
         Options? options = null;
 
-        Parser.Default.ParseArguments<Options>(args)
-            .WithParsed(o => { options = o; });
+        CommandLine.Parser
+           .Default
+           .ParseArguments<Options>(args)
+           .WithParsed(
+                o =>
+                {
+                    options = o;
+                }
+            );
 
-        if (options is null) return;
+        if (options is null)
+        {
+            return;
+        }
 
         var parsingOpts = new ParsingOptions(options.UseJson ? OutputType.Json : OutputType.KeyValue);
         if (options.UseIfconfig)
@@ -26,8 +36,7 @@ internal partial class Program
             process.Start();
 
             // Synchronously read the standard output of the spawned process.
-            var reader = process.StandardOutput;
-            Ifconfig.Parse(reader, parsingOpts);
+            Ifconfig.Parse(process.StandardOutput, Console.Out, parsingOpts);
             process.WaitForExit();
         }
     }

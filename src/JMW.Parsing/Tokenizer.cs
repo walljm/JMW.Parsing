@@ -52,7 +52,7 @@ public class Tokenizer
 
     public static BlockData GetBlockData(TextReader reader)
     {
-        var blocks = GetBlocks(reader);
+        var blocks = Parser.GetBlocks(reader);
         var groups = GetGroups(blocks, 500);
 
         return groups.Select(CommonTokens).Aggregate((p, c) =>
@@ -86,29 +86,5 @@ public class Tokenizer
         }
 
         return new BlockData(common ?? [], blockTokens);
-    }
-
-    private static IEnumerable<string> GetBlocks(TextReader reader)
-    {
-        var sb = new StringBuilder();
-        var last = '\0';
-        int? i;
-        while ((i = reader.Read()) != -1)
-        {
-            var current = (char)i;
-            if (!char.IsWhiteSpace(current) && last == '\n')
-            {
-                // new block
-                yield return sb.ToString();
-                sb.Clear();
-                sb.Append(current);
-            }
-            else
-            {
-                sb.Append(current);
-            }
-
-            last = current;
-        }
     }
 }

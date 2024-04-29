@@ -2,11 +2,9 @@ using Xunit.Abstractions;
 
 namespace JMW.Parsing.Tests;
 
-public class TokenTests
+public class TokenTests(ITestOutputHelper testOutputHelper)
 {
-    private readonly ITestOutputHelper _testOutputHelper;
-
-    [Fact]
+   [Fact]
     public void TokenizeTest()
     {
         var tokens = Tokenizer.Tokenize(ShowInterfaces);
@@ -18,7 +16,9 @@ public class TokenTests
         }
 
         foreach (var kvp in dict.OrderByDescending(o => o.Value))
-            _testOutputHelper.WriteLine(kvp.Key + ": " + kvp.Value);
+        {
+           testOutputHelper.WriteLine(kvp.Key + ": " + kvp.Value);
+        }
     }
 
     [Fact]
@@ -33,12 +33,12 @@ public class TokenTests
                 if (blockData.CommonTokens.Contains(token.ToLower()))
                 {
                     // its a key!
-                    _testOutputHelper.WriteLine($"  Key: {token}");
+                    testOutputHelper.WriteLine($"  Key: {token}");
                 }
                 else
                 {
                     // not a key, but a value
-                    _testOutputHelper.WriteLine($"Value: {token}");
+                    testOutputHelper.WriteLine($"Value: {token}");
                 }
             }
         }
@@ -412,11 +412,6 @@ public class TokenTests
                                                0 carrier transitions
 
                                           """;
-
-    public TokenTests(ITestOutputHelper testOutputHelper)
-    {
-        _testOutputHelper = testOutputHelper;
-    }
 
     #endregion
 }
