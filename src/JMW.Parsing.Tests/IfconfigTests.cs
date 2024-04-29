@@ -5,7 +5,7 @@ namespace JMW.Parsing.Tests;
 public class IfconfigTests(ITestOutputHelper testOutputHelper)
 {
     [Fact]
-    public void ParseJsonTest()
+    public void ParseJsonMacOsTest()
     {
         const string ifconfigOutput = @"
 lo0: flags=8049<UP,LOOPBACK,RUNNING,MULTICAST> mtu 16384
@@ -946,6 +946,973 @@ en7: flags=8863<UP,BROADCAST,SMART,RUNNING,SIMPLEX,MULTICAST> mtu 1500
     },
     ""Media"": ""autoselect (1000baseT \u003Cfull-duplex,flow-control\u003E)"",
     ""Status"": ""active""
+  }
+]
+";
+
+        using var reader = new StringReader(ifconfigOutput);
+        using var writer = new StringWriter();
+        Ifconfig.Parse(reader, writer, new ParsingOptions(OutputType.Json));
+
+        var actualOutput = writer.ToString();
+        testOutputHelper.WriteLine(actualOutput);
+        Assert.Equal(expectedJson, actualOutput);
+    }
+
+    [Fact]
+    public void ParseJsonUbuntu1Test()
+    {
+        const string ifconfigOutput = @"docker0: flags=4099<UP,BROADCAST,MULTICAST>  mtu 1500
+        inet 172.17.0.1  netmask 255.255.0.0  broadcast 172.17.255.255
+        ether 02:42:1b:bf:97:2c  txqueuelen 0  (Ethernet)
+        RX packets 0  bytes 0 (0.0 B)
+        RX errors 0  dropped 0  overruns 0  frame 0
+        TX packets 0  bytes 0 (0.0 B)
+        TX errors 0  dropped 0 overruns 0  carrier 0  collisions 0
+
+enx9cebe844d8ab: flags=4163<UP,BROADCAST,RUNNING,MULTICAST>  mtu 1500
+        inet 192.168.1.210  netmask 255.255.255.0  broadcast 192.168.1.255
+        inet6 fe80::c927:bb65:7a0f:4bb  prefixlen 64  scopeid 0x20<link>
+        ether 9c:eb:e8:44:d8:ab  txqueuelen 1000  (Ethernet)
+        RX packets 16108553  bytes 5450117374 (5.4 GB)
+        RX errors 0  dropped 0  overruns 0  frame 0
+        TX packets 16102736  bytes 4625588491 (4.6 GB)
+        TX errors 0  dropped 118 overruns 0  carrier 0  collisions 0
+
+lo: flags=73<UP,LOOPBACK,RUNNING>  mtu 65536
+        inet 127.0.0.1  netmask 255.0.0.0
+        inet6 ::1  prefixlen 128  scopeid 0x10<host>
+        loop  txqueuelen 1000  (Local Loopback)
+        RX packets 396599  bytes 39772176 (39.7 MB)
+        RX errors 0  dropped 0  overruns 0  frame 0
+        TX packets 396599  bytes 39772176 (39.7 MB)
+        TX errors 0  dropped 0 overruns 0  carrier 0  collisions 0
+
+tailscale0: flags=4305<UP,POINTOPOINT,RUNNING,NOARP,MULTICAST>  mtu 1280
+        inet 100.93.162.26  netmask 255.255.255.255  destination 100.93.162.26
+        inet6 fe80::1a81:dad8:7fc5:ef7e  prefixlen 64  scopeid 0x20<link>
+        inet6 fd7a:115c:a1e0:ab12:4843:cd96:625d:a21a  prefixlen 128  scopeid 0x0<global>
+        unspec 00-00-00-00-00-00-00-00-00-00-00-00-00-00-00-00  txqueuelen 500  (UNSPEC)
+        RX packets 2611314  bytes 163139569 (163.1 MB)
+        RX errors 0  dropped 0  overruns 0  frame 0
+        TX packets 3754187  bytes 2733369047 (2.7 GB)
+        TX errors 0  dropped 0 overruns 0  carrier 0  collisions 0
+
+wlp2s0: flags=4163<UP,BROADCAST,RUNNING,MULTICAST>  mtu 1500
+        inet 192.168.2.157  netmask 255.255.255.0  broadcast 192.168.2.255
+        inet6 fe80::3cdf:8918:a707:1972  prefixlen 64  scopeid 0x20<link>
+        ether e0:b9:a5:d1:72:c1  txqueuelen 1000  (Ethernet)
+        RX packets 22595837  bytes 8486851713 (8.4 GB)
+        RX errors 0  dropped 0  overruns 0  frame 0
+        TX packets 243693  bytes 44562396 (44.5 MB)
+        TX errors 0  dropped 0 overruns 0  carrier 0  collisions 0
+
+";
+
+		    const string expectedJson = @"[
+  {
+    ""InterfaceName"": ""docker0"",
+    ""Flags"": {
+      ""Bits"": ""4099"",
+      ""Values"": [
+        ""UP"",
+        ""BROADCAST"",
+        ""MULTICAST""
+      ]
+    },
+    ""Mtu"": ""1500"",
+    ""Inets"": [
+      {
+        ""Inet"": ""172.17.0.1"",
+        ""Netmask"": ""255.255.0.0"",
+        ""Broadcast"": ""172.17.255.255""
+      }
+    ],
+    ""Ether"": ""02:42:1b:bf:97:2c"",
+    ""Txqueuelen"": ""0"",
+    ""RX"": {
+      ""Packets"": ""0"",
+      ""Bytes"": ""0 (0.0 B)"",
+      ""Errors"": ""0"",
+      ""Dropped"": ""0"",
+      ""Overruns"": ""0"",
+      ""Frame"": ""0""
+    },
+    ""TX"": {
+      ""Packets"": ""0"",
+      ""Bytes"": ""0 (0.0 B)"",
+      ""Errors"": ""0"",
+      ""Dropped"": ""0"",
+      ""Overruns"": ""0"",
+      ""Carrier"": ""0"",
+      ""Collisions"": ""0""
+    }
+  },
+  {
+    ""InterfaceName"": ""enx9cebe844d8ab"",
+    ""Flags"": {
+      ""Bits"": ""4163"",
+      ""Values"": [
+        ""UP"",
+        ""BROADCAST"",
+        ""RUNNING"",
+        ""MULTICAST""
+      ]
+    },
+    ""Mtu"": ""1500"",
+    ""Inets"": [
+      {
+        ""Inet"": ""192.168.1.210"",
+        ""Netmask"": ""255.255.255.0"",
+        ""Broadcast"": ""192.168.1.255""
+      }
+    ],
+    ""Inet6s"": [
+      {
+        ""Inet6"": ""fe80::c927:bb65:7a0f:4bb"",
+        ""Prefixlen"": ""64"",
+        ""Scopeid"": ""0x20\u003Clink\u003E""
+      }
+    ],
+    ""Ether"": ""9c:eb:e8:44:d8:ab"",
+    ""Txqueuelen"": ""1000"",
+    ""RX"": {
+      ""Packets"": ""16108553"",
+      ""Bytes"": ""5450117374 (5.4 GB)"",
+      ""Errors"": ""0"",
+      ""Dropped"": ""0"",
+      ""Overruns"": ""0"",
+      ""Frame"": ""0""
+    },
+    ""TX"": {
+      ""Packets"": ""16102736"",
+      ""Bytes"": ""4625588491 (4.6 GB)"",
+      ""Errors"": ""0"",
+      ""Dropped"": ""118"",
+      ""Overruns"": ""0"",
+      ""Carrier"": ""0"",
+      ""Collisions"": ""0""
+    }
+  },
+  {
+    ""InterfaceName"": ""lo"",
+    ""Flags"": {
+      ""Bits"": ""73"",
+      ""Values"": [
+        ""UP"",
+        ""LOOPBACK"",
+        ""RUNNING""
+      ]
+    },
+    ""Mtu"": ""65536"",
+    ""Inets"": [
+      {
+        ""Inet"": ""127.0.0.1"",
+        ""Netmask"": ""255.0.0.0""
+      }
+    ],
+    ""Inet6s"": [
+      {
+        ""Inet6"": ""::1"",
+        ""Prefixlen"": ""128"",
+        ""Scopeid"": ""0x10\u003Chost\u003E""
+      }
+    ],
+    ""Loop"": ""true"",
+    ""Txqueuelen"": ""1000"",
+    ""RX"": {
+      ""Packets"": ""396599"",
+      ""Bytes"": ""39772176 (39.7 MB)"",
+      ""Errors"": ""0"",
+      ""Dropped"": ""0"",
+      ""Overruns"": ""0"",
+      ""Frame"": ""0""
+    },
+    ""TX"": {
+      ""Packets"": ""396599"",
+      ""Bytes"": ""39772176 (39.7 MB)"",
+      ""Errors"": ""0"",
+      ""Dropped"": ""0"",
+      ""Overruns"": ""0"",
+      ""Carrier"": ""0"",
+      ""Collisions"": ""0""
+    }
+  },
+  {
+    ""InterfaceName"": ""tailscale0"",
+    ""Flags"": {
+      ""Bits"": ""4305"",
+      ""Values"": [
+        ""UP"",
+        ""POINTOPOINT"",
+        ""RUNNING"",
+        ""NOARP"",
+        ""MULTICAST""
+      ]
+    },
+    ""Mtu"": ""1280"",
+    ""Inets"": [
+      {
+        ""Inet"": ""100.93.162.26"",
+        ""Netmask"": ""255.255.255.255""
+      }
+    ],
+    ""Inet6s"": [
+      {
+        ""Inet6"": ""fe80::1a81:dad8:7fc5:ef7e"",
+        ""Prefixlen"": ""64"",
+        ""Scopeid"": ""0x20\u003Clink\u003E""
+      },
+      {
+        ""Inet6"": ""fd7a:115c:a1e0:ab12:4843:cd96:625d:a21a"",
+        ""Prefixlen"": ""128"",
+        ""Scopeid"": ""0x0\u003Cglobal\u003E""
+      }
+    ],
+    ""Unspec"": ""00-00-00-00-00-00-00-00-00-00-00-00-00-00-00-00"",
+    ""Txqueuelen"": ""500"",
+    ""RX"": {
+      ""Packets"": ""2611314"",
+      ""Bytes"": ""163139569 (163.1 MB)"",
+      ""Errors"": ""0"",
+      ""Dropped"": ""0"",
+      ""Overruns"": ""0"",
+      ""Frame"": ""0""
+    },
+    ""TX"": {
+      ""Packets"": ""3754187"",
+      ""Bytes"": ""2733369047 (2.7 GB)"",
+      ""Errors"": ""0"",
+      ""Dropped"": ""0"",
+      ""Overruns"": ""0"",
+      ""Carrier"": ""0"",
+      ""Collisions"": ""0""
+    }
+  },
+  {
+    ""InterfaceName"": ""wlp2s0"",
+    ""Flags"": {
+      ""Bits"": ""4163"",
+      ""Values"": [
+        ""UP"",
+        ""BROADCAST"",
+        ""RUNNING"",
+        ""MULTICAST""
+      ]
+    },
+    ""Mtu"": ""1500"",
+    ""Inets"": [
+      {
+        ""Inet"": ""192.168.2.157"",
+        ""Netmask"": ""255.255.255.0"",
+        ""Broadcast"": ""192.168.2.255""
+      }
+    ],
+    ""Inet6s"": [
+      {
+        ""Inet6"": ""fe80::3cdf:8918:a707:1972"",
+        ""Prefixlen"": ""64"",
+        ""Scopeid"": ""0x20\u003Clink\u003E""
+      }
+    ],
+    ""Ether"": ""e0:b9:a5:d1:72:c1"",
+    ""Txqueuelen"": ""1000"",
+    ""RX"": {
+      ""Packets"": ""22595837"",
+      ""Bytes"": ""8486851713 (8.4 GB)"",
+      ""Errors"": ""0"",
+      ""Dropped"": ""0"",
+      ""Overruns"": ""0"",
+      ""Frame"": ""0""
+    },
+    ""TX"": {
+      ""Packets"": ""243693"",
+      ""Bytes"": ""44562396 (44.5 MB)"",
+      ""Errors"": ""0"",
+      ""Dropped"": ""0"",
+      ""Overruns"": ""0"",
+      ""Carrier"": ""0"",
+      ""Collisions"": ""0""
+    }
+  }
+]
+";
+
+        using var reader = new StringReader(ifconfigOutput);
+        using var writer = new StringWriter();
+        Ifconfig.Parse(reader, writer, new ParsingOptions(OutputType.Json));
+
+        var actualOutput = writer.ToString();
+        testOutputHelper.WriteLine(actualOutput);
+        Assert.Equal(expectedJson, actualOutput);
+    }
+
+    [Fact]
+    public void ParseJsonUbuntu2Test()
+    {
+        const string ifconfigOutput = @"br-530f8ddccaf3: flags=4163<UP,BROADCAST,RUNNING,MULTICAST>  mtu 1500
+        inet 172.24.0.1  netmask 255.255.0.0  broadcast 172.24.255.255
+        inet6 fe80::42:7ff:fe77:643e  prefixlen 64  scopeid 0x20<link>
+        ether 02:42:07:77:64:3e  txqueuelen 0  (Ethernet)
+        RX packets 17070416  bytes 17418305276 (17.4 GB)
+        RX errors 0  dropped 0  overruns 0  frame 0
+        TX packets 16235754  bytes 6814602232 (6.8 GB)
+        TX errors 0  dropped 0 overruns 0  carrier 0  collisions 0
+
+br-9336a9a52d58: flags=4163<UP,BROADCAST,RUNNING,MULTICAST>  mtu 1500
+        inet 172.25.0.1  netmask 255.255.0.0  broadcast 172.25.255.255
+        inet6 fe80::42:dcff:fe7a:6dc6  prefixlen 64  scopeid 0x20<link>
+        ether 02:42:dc:7a:6d:c6  txqueuelen 0  (Ethernet)
+        RX packets 1704  bytes 1720925 (1.7 MB)
+        RX errors 0  dropped 0  overruns 0  frame 0
+        TX packets 305016  bytes 13471808 (13.4 MB)
+        TX errors 0  dropped 0 overruns 0  carrier 0  collisions 0
+
+docker0: flags=4099<UP,BROADCAST,MULTICAST>  mtu 1500
+        inet 172.17.0.1  netmask 255.255.0.0  broadcast 172.17.255.255
+        ether 02:42:dd:b2:26:88  txqueuelen 0  (Ethernet)
+        RX packets 0  bytes 0 (0.0 B)
+        RX errors 0  dropped 0  overruns 0  frame 0
+        TX packets 0  bytes 0 (0.0 B)
+        TX errors 0  dropped 0 overruns 0  carrier 0  collisions 0
+
+eth0: flags=4163<UP,BROADCAST,RUNNING,MULTICAST>  mtu 9001
+        inet 172.30.0.21  netmask 255.255.255.0  broadcast 172.30.0.255
+        inet6 fe80::8ff:41ff:fe40:6ef9  prefixlen 64  scopeid 0x20<link>
+        ether 0a:ff:41:40:6e:f9  txqueuelen 1000  (Ethernet)
+        RX packets 19928899  bytes 7661006299 (7.6 GB)
+        RX errors 0  dropped 0  overruns 0  frame 0
+        TX packets 24211498  bytes 18502727774 (18.5 GB)
+        TX errors 0  dropped 0 overruns 0  carrier 0  collisions 0
+
+lo: flags=73<UP,LOOPBACK,RUNNING>  mtu 65536
+        inet 127.0.0.1  netmask 255.0.0.0
+        inet6 ::1  prefixlen 128  scopeid 0x10<host>
+        loop  txqueuelen 1000  (Local Loopback)
+        RX packets 2389363  bytes 319799604 (319.7 MB)
+        RX errors 0  dropped 0  overruns 0  frame 0
+        TX packets 2389363  bytes 319799604 (319.7 MB)
+        TX errors 0  dropped 0 overruns 0  carrier 0  collisions 0
+
+tailscale0: flags=4305<UP,POINTOPOINT,RUNNING,NOARP,MULTICAST>  mtu 1280
+        inet 100.88.1.107  netmask 255.255.255.255  destination 100.88.1.107
+        inet6 fe80::2faf:887e:330b:8783  prefixlen 64  scopeid 0x20<link>
+        inet6 fd7a:115c:a1e0:ab12:4843:cd96:6258:16b  prefixlen 128  scopeid 0x0<global>
+        unspec 00-00-00-00-00-00-00-00-00-00-00-00-00-00-00-00  txqueuelen 500  (UNSPEC)
+        RX packets 8097  bytes 680630 (680.6 KB)
+        RX errors 0  dropped 0  overruns 0  frame 0
+        TX packets 117434  bytes 11014214 (11.0 MB)
+        TX errors 0  dropped 0 overruns 0  carrier 0  collisions 0
+
+veth0ec3231: flags=4163<UP,BROADCAST,RUNNING,MULTICAST>  mtu 1500
+        inet6 fe80::581e:cfff:fe36:2ea5  prefixlen 64  scopeid 0x20<link>
+        ether 5a:1e:cf:36:2e:a5  txqueuelen 0  (Ethernet)
+        RX packets 5857  bytes 2945118 (2.9 MB)
+        RX errors 0  dropped 0  overruns 0  frame 0
+        TX packets 311016  bytes 15949827 (15.9 MB)
+        TX errors 0  dropped 0 overruns 0  carrier 0  collisions 0
+
+veth2ef2a03: flags=4163<UP,BROADCAST,RUNNING,MULTICAST>  mtu 1500
+        inet6 fe80::842a:e6ff:feef:b2df  prefixlen 64  scopeid 0x20<link>
+        ether 86:2a:e6:ef:b2:df  txqueuelen 0  (Ethernet)
+        RX packets 1704  bytes 1744781 (1.7 MB)
+        RX errors 0  dropped 0  overruns 0  frame 0
+        TX packets 305020  bytes 13472284 (13.4 MB)
+        TX errors 0  dropped 0 overruns 0  carrier 0  collisions 0
+
+veth3dc1383: flags=4163<UP,BROADCAST,RUNNING,MULTICAST>  mtu 1500
+        inet6 fe80::3403:e8ff:fecc:dbd9  prefixlen 64  scopeid 0x20<link>
+        ether 36:03:e8:cc:db:d9  txqueuelen 0  (Ethernet)
+        RX packets 167262683  bytes 32033232911 (32.0 GB)
+        RX errors 0  dropped 0  overruns 0  frame 0
+        TX packets 164352748  bytes 1330083561074 (1.3 TB)
+        TX errors 0  dropped 0 overruns 0  carrier 0  collisions 0
+
+veth6f75e49: flags=4163<UP,BROADCAST,RUNNING,MULTICAST>  mtu 1500
+        inet6 fe80::181b:a7ff:fe62:6ced  prefixlen 64  scopeid 0x20<link>
+        ether 1a:1b:a7:62:6c:ed  txqueuelen 0  (Ethernet)
+        RX packets 3369553  bytes 29049556393 (29.0 GB)
+        RX errors 0  dropped 0  overruns 0  frame 0
+        TX packets 3519440  bytes 433375972 (433.3 MB)
+        TX errors 0  dropped 0 overruns 0  carrier 0  collisions 0
+
+veth9cb8381: flags=4163<UP,BROADCAST,RUNNING,MULTICAST>  mtu 1500
+        inet6 fe80::b0d3:40ff:fe20:3e24  prefixlen 64  scopeid 0x20<link>
+        ether b2:d3:40:20:3e:24  txqueuelen 0  (Ethernet)
+        RX packets 19840596  bytes 18548796872 (18.5 GB)
+        RX errors 0  dropped 0  overruns 0  frame 0
+        TX packets 18016840  bytes 15951114694 (15.9 GB)
+        TX errors 0  dropped 0 overruns 0  carrier 0  collisions 0
+
+vethe262982: flags=4163<UP,BROADCAST,RUNNING,MULTICAST>  mtu 1500
+        inet6 fe80::90e4:e6ff:fe21:fda4  prefixlen 64  scopeid 0x20<link>
+        ether 92:e4:e6:21:fd:a4  txqueuelen 0  (Ethernet)
+        RX packets 2084531  bytes 1386047641 (1.3 GB)
+        RX errors 0  dropped 0  overruns 0  frame 0
+        TX packets 2725578  bytes 2609723244 (2.6 GB)
+        TX errors 0  dropped 0 overruns 0  carrier 0  collisions 0
+
+ztrfyb5gbi: flags=4163<UP,BROADCAST,RUNNING,MULTICAST>  mtu 2800
+        inet 192.168.10.101  netmask 255.255.255.0  broadcast 192.168.10.255
+        inet6 fe80::a032:94ff:fe69:6a86  prefixlen 64  scopeid 0x20<link>
+        ether a2:32:94:69:6a:86  txqueuelen 1000  (Ethernet)
+        RX packets 1457  bytes 133462 (133.4 KB)
+        RX errors 0  dropped 0  overruns 0  frame 0
+        TX packets 70  bytes 8600 (8.6 KB)
+        TX errors 0  dropped 0 overruns 0  carrier 0  collisions 0
+";
+
+		    const string expectedJson = @"[
+  {
+    ""InterfaceName"": ""br-530f8ddccaf3"",
+    ""Flags"": {
+      ""Bits"": ""4163"",
+      ""Values"": [
+        ""UP"",
+        ""BROADCAST"",
+        ""RUNNING"",
+        ""MULTICAST""
+      ]
+    },
+    ""Mtu"": ""1500"",
+    ""Inets"": [
+      {
+        ""Inet"": ""172.24.0.1"",
+        ""Netmask"": ""255.255.0.0"",
+        ""Broadcast"": ""172.24.255.255""
+      }
+    ],
+    ""Inet6s"": [
+      {
+        ""Inet6"": ""fe80::42:7ff:fe77:643e"",
+        ""Prefixlen"": ""64"",
+        ""Scopeid"": ""0x20\u003Clink\u003E""
+      }
+    ],
+    ""Ether"": ""02:42:07:77:64:3e"",
+    ""Txqueuelen"": ""0"",
+    ""RX"": {
+      ""Packets"": ""17070416"",
+      ""Bytes"": ""17418305276 (17.4 GB)"",
+      ""Errors"": ""0"",
+      ""Dropped"": ""0"",
+      ""Overruns"": ""0"",
+      ""Frame"": ""0""
+    },
+    ""TX"": {
+      ""Packets"": ""16235754"",
+      ""Bytes"": ""6814602232 (6.8 GB)"",
+      ""Errors"": ""0"",
+      ""Dropped"": ""0"",
+      ""Overruns"": ""0"",
+      ""Carrier"": ""0"",
+      ""Collisions"": ""0""
+    }
+  },
+  {
+    ""InterfaceName"": ""br-9336a9a52d58"",
+    ""Flags"": {
+      ""Bits"": ""4163"",
+      ""Values"": [
+        ""UP"",
+        ""BROADCAST"",
+        ""RUNNING"",
+        ""MULTICAST""
+      ]
+    },
+    ""Mtu"": ""1500"",
+    ""Inets"": [
+      {
+        ""Inet"": ""172.25.0.1"",
+        ""Netmask"": ""255.255.0.0"",
+        ""Broadcast"": ""172.25.255.255""
+      }
+    ],
+    ""Inet6s"": [
+      {
+        ""Inet6"": ""fe80::42:dcff:fe7a:6dc6"",
+        ""Prefixlen"": ""64"",
+        ""Scopeid"": ""0x20\u003Clink\u003E""
+      }
+    ],
+    ""Ether"": ""02:42:dc:7a:6d:c6"",
+    ""Txqueuelen"": ""0"",
+    ""RX"": {
+      ""Packets"": ""1704"",
+      ""Bytes"": ""1720925 (1.7 MB)"",
+      ""Errors"": ""0"",
+      ""Dropped"": ""0"",
+      ""Overruns"": ""0"",
+      ""Frame"": ""0""
+    },
+    ""TX"": {
+      ""Packets"": ""305016"",
+      ""Bytes"": ""13471808 (13.4 MB)"",
+      ""Errors"": ""0"",
+      ""Dropped"": ""0"",
+      ""Overruns"": ""0"",
+      ""Carrier"": ""0"",
+      ""Collisions"": ""0""
+    }
+  },
+  {
+    ""InterfaceName"": ""docker0"",
+    ""Flags"": {
+      ""Bits"": ""4099"",
+      ""Values"": [
+        ""UP"",
+        ""BROADCAST"",
+        ""MULTICAST""
+      ]
+    },
+    ""Mtu"": ""1500"",
+    ""Inets"": [
+      {
+        ""Inet"": ""172.17.0.1"",
+        ""Netmask"": ""255.255.0.0"",
+        ""Broadcast"": ""172.17.255.255""
+      }
+    ],
+    ""Ether"": ""02:42:dd:b2:26:88"",
+    ""Txqueuelen"": ""0"",
+    ""RX"": {
+      ""Packets"": ""0"",
+      ""Bytes"": ""0 (0.0 B)"",
+      ""Errors"": ""0"",
+      ""Dropped"": ""0"",
+      ""Overruns"": ""0"",
+      ""Frame"": ""0""
+    },
+    ""TX"": {
+      ""Packets"": ""0"",
+      ""Bytes"": ""0 (0.0 B)"",
+      ""Errors"": ""0"",
+      ""Dropped"": ""0"",
+      ""Overruns"": ""0"",
+      ""Carrier"": ""0"",
+      ""Collisions"": ""0""
+    }
+  },
+  {
+    ""InterfaceName"": ""eth0"",
+    ""Flags"": {
+      ""Bits"": ""4163"",
+      ""Values"": [
+        ""UP"",
+        ""BROADCAST"",
+        ""RUNNING"",
+        ""MULTICAST""
+      ]
+    },
+    ""Mtu"": ""9001"",
+    ""Inets"": [
+      {
+        ""Inet"": ""172.30.0.21"",
+        ""Netmask"": ""255.255.255.0"",
+        ""Broadcast"": ""172.30.0.255""
+      }
+    ],
+    ""Inet6s"": [
+      {
+        ""Inet6"": ""fe80::8ff:41ff:fe40:6ef9"",
+        ""Prefixlen"": ""64"",
+        ""Scopeid"": ""0x20\u003Clink\u003E""
+      }
+    ],
+    ""Ether"": ""0a:ff:41:40:6e:f9"",
+    ""Txqueuelen"": ""1000"",
+    ""RX"": {
+      ""Packets"": ""19928899"",
+      ""Bytes"": ""7661006299 (7.6 GB)"",
+      ""Errors"": ""0"",
+      ""Dropped"": ""0"",
+      ""Overruns"": ""0"",
+      ""Frame"": ""0""
+    },
+    ""TX"": {
+      ""Packets"": ""24211498"",
+      ""Bytes"": ""18502727774 (18.5 GB)"",
+      ""Errors"": ""0"",
+      ""Dropped"": ""0"",
+      ""Overruns"": ""0"",
+      ""Carrier"": ""0"",
+      ""Collisions"": ""0""
+    }
+  },
+  {
+    ""InterfaceName"": ""lo"",
+    ""Flags"": {
+      ""Bits"": ""73"",
+      ""Values"": [
+        ""UP"",
+        ""LOOPBACK"",
+        ""RUNNING""
+      ]
+    },
+    ""Mtu"": ""65536"",
+    ""Inets"": [
+      {
+        ""Inet"": ""127.0.0.1"",
+        ""Netmask"": ""255.0.0.0""
+      }
+    ],
+    ""Inet6s"": [
+      {
+        ""Inet6"": ""::1"",
+        ""Prefixlen"": ""128"",
+        ""Scopeid"": ""0x10\u003Chost\u003E""
+      }
+    ],
+    ""Loop"": ""true"",
+    ""Txqueuelen"": ""1000"",
+    ""RX"": {
+      ""Packets"": ""2389363"",
+      ""Bytes"": ""319799604 (319.7 MB)"",
+      ""Errors"": ""0"",
+      ""Dropped"": ""0"",
+      ""Overruns"": ""0"",
+      ""Frame"": ""0""
+    },
+    ""TX"": {
+      ""Packets"": ""2389363"",
+      ""Bytes"": ""319799604 (319.7 MB)"",
+      ""Errors"": ""0"",
+      ""Dropped"": ""0"",
+      ""Overruns"": ""0"",
+      ""Carrier"": ""0"",
+      ""Collisions"": ""0""
+    }
+  },
+  {
+    ""InterfaceName"": ""tailscale0"",
+    ""Flags"": {
+      ""Bits"": ""4305"",
+      ""Values"": [
+        ""UP"",
+        ""POINTOPOINT"",
+        ""RUNNING"",
+        ""NOARP"",
+        ""MULTICAST""
+      ]
+    },
+    ""Mtu"": ""1280"",
+    ""Inets"": [
+      {
+        ""Inet"": ""100.88.1.107"",
+        ""Netmask"": ""255.255.255.255""
+      }
+    ],
+    ""Inet6s"": [
+      {
+        ""Inet6"": ""fe80::2faf:887e:330b:8783"",
+        ""Prefixlen"": ""64"",
+        ""Scopeid"": ""0x20\u003Clink\u003E""
+      },
+      {
+        ""Inet6"": ""fd7a:115c:a1e0:ab12:4843:cd96:6258:16b"",
+        ""Prefixlen"": ""128"",
+        ""Scopeid"": ""0x0\u003Cglobal\u003E""
+      }
+    ],
+    ""Unspec"": ""00-00-00-00-00-00-00-00-00-00-00-00-00-00-00-00"",
+    ""Txqueuelen"": ""500"",
+    ""RX"": {
+      ""Packets"": ""8097"",
+      ""Bytes"": ""680630 (680.6 KB)"",
+      ""Errors"": ""0"",
+      ""Dropped"": ""0"",
+      ""Overruns"": ""0"",
+      ""Frame"": ""0""
+    },
+    ""TX"": {
+      ""Packets"": ""117434"",
+      ""Bytes"": ""11014214 (11.0 MB)"",
+      ""Errors"": ""0"",
+      ""Dropped"": ""0"",
+      ""Overruns"": ""0"",
+      ""Carrier"": ""0"",
+      ""Collisions"": ""0""
+    }
+  },
+  {
+    ""InterfaceName"": ""veth0ec3231"",
+    ""Flags"": {
+      ""Bits"": ""4163"",
+      ""Values"": [
+        ""UP"",
+        ""BROADCAST"",
+        ""RUNNING"",
+        ""MULTICAST""
+      ]
+    },
+    ""Mtu"": ""1500"",
+    ""Inet6s"": [
+      {
+        ""Inet6"": ""fe80::581e:cfff:fe36:2ea5"",
+        ""Prefixlen"": ""64"",
+        ""Scopeid"": ""0x20\u003Clink\u003E""
+      }
+    ],
+    ""Ether"": ""5a:1e:cf:36:2e:a5"",
+    ""Txqueuelen"": ""0"",
+    ""RX"": {
+      ""Packets"": ""5857"",
+      ""Bytes"": ""2945118 (2.9 MB)"",
+      ""Errors"": ""0"",
+      ""Dropped"": ""0"",
+      ""Overruns"": ""0"",
+      ""Frame"": ""0""
+    },
+    ""TX"": {
+      ""Packets"": ""311016"",
+      ""Bytes"": ""15949827 (15.9 MB)"",
+      ""Errors"": ""0"",
+      ""Dropped"": ""0"",
+      ""Overruns"": ""0"",
+      ""Carrier"": ""0"",
+      ""Collisions"": ""0""
+    }
+  },
+  {
+    ""InterfaceName"": ""veth2ef2a03"",
+    ""Flags"": {
+      ""Bits"": ""4163"",
+      ""Values"": [
+        ""UP"",
+        ""BROADCAST"",
+        ""RUNNING"",
+        ""MULTICAST""
+      ]
+    },
+    ""Mtu"": ""1500"",
+    ""Inet6s"": [
+      {
+        ""Inet6"": ""fe80::842a:e6ff:feef:b2df"",
+        ""Prefixlen"": ""64"",
+        ""Scopeid"": ""0x20\u003Clink\u003E""
+      }
+    ],
+    ""Ether"": ""86:2a:e6:ef:b2:df"",
+    ""Txqueuelen"": ""0"",
+    ""RX"": {
+      ""Packets"": ""1704"",
+      ""Bytes"": ""1744781 (1.7 MB)"",
+      ""Errors"": ""0"",
+      ""Dropped"": ""0"",
+      ""Overruns"": ""0"",
+      ""Frame"": ""0""
+    },
+    ""TX"": {
+      ""Packets"": ""305020"",
+      ""Bytes"": ""13472284 (13.4 MB)"",
+      ""Errors"": ""0"",
+      ""Dropped"": ""0"",
+      ""Overruns"": ""0"",
+      ""Carrier"": ""0"",
+      ""Collisions"": ""0""
+    }
+  },
+  {
+    ""InterfaceName"": ""veth3dc1383"",
+    ""Flags"": {
+      ""Bits"": ""4163"",
+      ""Values"": [
+        ""UP"",
+        ""BROADCAST"",
+        ""RUNNING"",
+        ""MULTICAST""
+      ]
+    },
+    ""Mtu"": ""1500"",
+    ""Inet6s"": [
+      {
+        ""Inet6"": ""fe80::3403:e8ff:fecc:dbd9"",
+        ""Prefixlen"": ""64"",
+        ""Scopeid"": ""0x20\u003Clink\u003E""
+      }
+    ],
+    ""Ether"": ""36:03:e8:cc:db:d9"",
+    ""Txqueuelen"": ""0"",
+    ""RX"": {
+      ""Packets"": ""167262683"",
+      ""Bytes"": ""32033232911 (32.0 GB)"",
+      ""Errors"": ""0"",
+      ""Dropped"": ""0"",
+      ""Overruns"": ""0"",
+      ""Frame"": ""0""
+    },
+    ""TX"": {
+      ""Packets"": ""164352748"",
+      ""Bytes"": ""1330083561074 (1.3 TB)"",
+      ""Errors"": ""0"",
+      ""Dropped"": ""0"",
+      ""Overruns"": ""0"",
+      ""Carrier"": ""0"",
+      ""Collisions"": ""0""
+    }
+  },
+  {
+    ""InterfaceName"": ""veth6f75e49"",
+    ""Flags"": {
+      ""Bits"": ""4163"",
+      ""Values"": [
+        ""UP"",
+        ""BROADCAST"",
+        ""RUNNING"",
+        ""MULTICAST""
+      ]
+    },
+    ""Mtu"": ""1500"",
+    ""Inet6s"": [
+      {
+        ""Inet6"": ""fe80::181b:a7ff:fe62:6ced"",
+        ""Prefixlen"": ""64"",
+        ""Scopeid"": ""0x20\u003Clink\u003E""
+      }
+    ],
+    ""Ether"": ""1a:1b:a7:62:6c:ed"",
+    ""Txqueuelen"": ""0"",
+    ""RX"": {
+      ""Packets"": ""3369553"",
+      ""Bytes"": ""29049556393 (29.0 GB)"",
+      ""Errors"": ""0"",
+      ""Dropped"": ""0"",
+      ""Overruns"": ""0"",
+      ""Frame"": ""0""
+    },
+    ""TX"": {
+      ""Packets"": ""3519440"",
+      ""Bytes"": ""433375972 (433.3 MB)"",
+      ""Errors"": ""0"",
+      ""Dropped"": ""0"",
+      ""Overruns"": ""0"",
+      ""Carrier"": ""0"",
+      ""Collisions"": ""0""
+    }
+  },
+  {
+    ""InterfaceName"": ""veth9cb8381"",
+    ""Flags"": {
+      ""Bits"": ""4163"",
+      ""Values"": [
+        ""UP"",
+        ""BROADCAST"",
+        ""RUNNING"",
+        ""MULTICAST""
+      ]
+    },
+    ""Mtu"": ""1500"",
+    ""Inet6s"": [
+      {
+        ""Inet6"": ""fe80::b0d3:40ff:fe20:3e24"",
+        ""Prefixlen"": ""64"",
+        ""Scopeid"": ""0x20\u003Clink\u003E""
+      }
+    ],
+    ""Ether"": ""b2:d3:40:20:3e:24"",
+    ""Txqueuelen"": ""0"",
+    ""RX"": {
+      ""Packets"": ""19840596"",
+      ""Bytes"": ""18548796872 (18.5 GB)"",
+      ""Errors"": ""0"",
+      ""Dropped"": ""0"",
+      ""Overruns"": ""0"",
+      ""Frame"": ""0""
+    },
+    ""TX"": {
+      ""Packets"": ""18016840"",
+      ""Bytes"": ""15951114694 (15.9 GB)"",
+      ""Errors"": ""0"",
+      ""Dropped"": ""0"",
+      ""Overruns"": ""0"",
+      ""Carrier"": ""0"",
+      ""Collisions"": ""0""
+    }
+  },
+  {
+    ""InterfaceName"": ""vethe262982"",
+    ""Flags"": {
+      ""Bits"": ""4163"",
+      ""Values"": [
+        ""UP"",
+        ""BROADCAST"",
+        ""RUNNING"",
+        ""MULTICAST""
+      ]
+    },
+    ""Mtu"": ""1500"",
+    ""Inet6s"": [
+      {
+        ""Inet6"": ""fe80::90e4:e6ff:fe21:fda4"",
+        ""Prefixlen"": ""64"",
+        ""Scopeid"": ""0x20\u003Clink\u003E""
+      }
+    ],
+    ""Ether"": ""92:e4:e6:21:fd:a4"",
+    ""Txqueuelen"": ""0"",
+    ""RX"": {
+      ""Packets"": ""2084531"",
+      ""Bytes"": ""1386047641 (1.3 GB)"",
+      ""Errors"": ""0"",
+      ""Dropped"": ""0"",
+      ""Overruns"": ""0"",
+      ""Frame"": ""0""
+    },
+    ""TX"": {
+      ""Packets"": ""2725578"",
+      ""Bytes"": ""2609723244 (2.6 GB)"",
+      ""Errors"": ""0"",
+      ""Dropped"": ""0"",
+      ""Overruns"": ""0"",
+      ""Carrier"": ""0"",
+      ""Collisions"": ""0""
+    }
+  },
+  {
+    ""InterfaceName"": ""ztrfyb5gbi"",
+    ""Flags"": {
+      ""Bits"": ""4163"",
+      ""Values"": [
+        ""UP"",
+        ""BROADCAST"",
+        ""RUNNING"",
+        ""MULTICAST""
+      ]
+    },
+    ""Mtu"": ""2800"",
+    ""Inets"": [
+      {
+        ""Inet"": ""192.168.10.101"",
+        ""Netmask"": ""255.255.255.0"",
+        ""Broadcast"": ""192.168.10.255""
+      }
+    ],
+    ""Inet6s"": [
+      {
+        ""Inet6"": ""fe80::a032:94ff:fe69:6a86"",
+        ""Prefixlen"": ""64"",
+        ""Scopeid"": ""0x20\u003Clink\u003E""
+      }
+    ],
+    ""Ether"": ""a2:32:94:69:6a:86"",
+    ""Txqueuelen"": ""1000"",
+    ""RX"": {
+      ""Packets"": ""1457"",
+      ""Bytes"": ""133462 (133.4 KB)"",
+      ""Errors"": ""0"",
+      ""Dropped"": ""0"",
+      ""Overruns"": ""0"",
+      ""Frame"": ""0""
+    },
+    ""TX"": {
+      ""Packets"": ""70"",
+      ""Bytes"": ""8600 (8.6 KB)"",
+      ""Errors"": ""0"",
+      ""Dropped"": ""0"",
+      ""Overruns"": ""0"",
+      ""Carrier"": ""0"",
+      ""Collisions"": ""0""
+    }
   }
 ]
 ";

@@ -203,6 +203,12 @@ public static class Ifconfig
         "member",
     ];
 
+    private static readonly HashSet<string> mergePairs =
+    [
+        "RX",
+        "TX",
+    ];
+
     private const string NewLine = "<newline>";
     private const string Next = "<next>";
     private const string Single = "<single>";
@@ -230,7 +236,10 @@ public static class Ifconfig
         { "netif", Next },
         { "flowswitch", Next },
         { "options", Options },
-        { "index", Next }
+        { "index", Next },
+        { "txqueuelen", Next },
+        { "unspec", Next },
+        { "loop", Single }
     };
 
     private static readonly Dictionary<string, GroupDefinition> groupKeywords = new()
@@ -332,6 +341,40 @@ public static class Ifconfig
                 },
                 []
             )
+        },
+        {
+            "RX", new GroupDefinition(
+                Group,
+                new Dictionary<string, string>
+                {
+                    { "packets", Next },
+                    { "errors", Next },
+                    { "dropped", Next },
+                    { "overruns", Next },
+                    { "carrier", Next },
+                    { "frame", Next },
+                    { "collisions", Next },
+                    { "bytes", NewLine }
+                },
+                []
+            )
+        },
+        {
+            "TX", new GroupDefinition(
+                Group,
+                new Dictionary<string, string>
+                {
+                    { "packets", Next },
+                    { "errors", Next },
+                    { "dropped", Next },
+                    { "overruns", Next },
+                    { "carrier", Next },
+                    { "frame", Next },
+                    { "collisions", Next },
+                    { "bytes", NewLine }
+                },
+                []
+            )
         }
     };
 
@@ -406,6 +449,15 @@ public static class Ifconfig
                     {
                         yield return item;
                     }
+                }
+                else if (mergePairs.Contains(token))
+                {
+                    var children = HandleArrayKeywords(queue, enumerator, token, groupKeyword)
+                       .SelectMany(o => o.Children.SelectMany(c => c.Children))
+                       .ToArray();
+
+                    // merge properties
+                    yield return new Pair(token, string.Empty, children, ChildType.ObjectType);
                 }
                 else
                 {
