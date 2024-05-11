@@ -4,21 +4,6 @@ using System.Text.Json;
 
 namespace JMW.Parsing;
 
-public enum OutputType
-{
-    Json,
-    KeyValue
-}
-
-internal enum ChildType
-{
-    StringType,
-    ArrayType,
-    ObjectType,
-}
-
-public record ParsingOptions(OutputType OutputType);
-
 public static class Ifconfig
 {
     #region Public Parse/Output
@@ -37,7 +22,7 @@ public static class Ifconfig
 
     public static void OutputKeyValues(TextReader inputReader, TextWriter outputWriter)
     {
-        var blocks = Parser.GetBlocks(inputReader, trimInitialWhitespace: true, trimEndingWhitespace: false);
+        var blocks = Helpers.GetBlocks(inputReader, trimInitialWhitespace: true, trimEndingWhitespace: false);
 
         foreach (var block in blocks)
         {
@@ -55,7 +40,7 @@ public static class Ifconfig
 
     public static void OutputJson(TextReader inputReader, TextWriter outputWriter)
     {
-        var blocks = Parser.GetBlocks(inputReader, trimInitialWhitespace: true, trimEndingWhitespace: false);
+        var blocks = Helpers.GetBlocks(inputReader, trimInitialWhitespace: true, trimEndingWhitespace: false);
         var jsonWriterOptions = new JsonWriterOptions
         {
             Indented = true
@@ -91,26 +76,6 @@ public static class Ifconfig
         outputWriter.WriteLine(json);
     }
 
-    private static string CleanKey(string key)
-    {
-        // remove non alphabet chars
-        // convert to PascalCase
-        var sb = new StringBuilder();
-        char? last = null;
-        foreach (var current in key)
-        {
-            if (char.IsDigit(current) || char.IsLetter(current))
-                sb.Append(
-                    last is null || char.IsWhiteSpace(last.Value)
-                        ? char.ToUpper(current)
-                        : current
-                );
-            last = current;
-        }
-
-        return sb.ToString();
-    }
-
     #endregion
 
     #region Classes and Constants
@@ -123,7 +88,7 @@ public static class Ifconfig
             {
                 case ChildType.StringType:
 
-                    writer.WriteString(CleanKey(Key), Value);
+                    writer.WriteString(Helpers.CleanKey(Key), Value);
                     break;
                 case ChildType.ObjectType:
                 {
@@ -133,7 +98,7 @@ public static class Ifconfig
                     }
                     else
                     {
-                        writer.WriteStartObject(CleanKey(Key));
+                        writer.WriteStartObject(Helpers.CleanKey(Key));
                     }
 
                     foreach (var child in Children)
@@ -151,7 +116,7 @@ public static class Ifconfig
                     }
                     else
                     {
-                        writer.WriteStartArray(CleanKey(Key));
+                        writer.WriteStartArray(Helpers.CleanKey(Key));
                     }
 
                     foreach (var child in Children)
@@ -173,7 +138,7 @@ public static class Ifconfig
 
         public void WriteKeyValues(TextWriter writer, int indent = 0)
         {
-            writer.WriteLine($"{string.Empty.PadLeft(indent)}{CleanKey(Key)}: {Value}");
+            writer.WriteLine($"{string.Empty.PadLeft(indent)}{Helpers.CleanKey(Key)}: {Value}");
             if (Children.Length > 0)
             {
                 foreach (var child in Children)
@@ -245,7 +210,7 @@ public static class Ifconfig
     private static readonly Dictionary<string, GroupDefinition> groupKeywords = new()
     {
         {
-            "Configuration:", new GroupDefinition(
+            "Configuration", new GroupDefinition(
                 NewLine,
                 new Dictionary<string, string>
                 {
@@ -407,25 +372,6 @@ public static class Ifconfig
 
     #region Private Functions
 
-    private static bool TryGetValue(
-        IEnumerator<string> enumerator,
-        Queue<string> queue,
-        [NotNullWhen(true)] out string? value
-    )
-    {
-        // first try and get it from the queue.
-        if (queue.TryDequeue(out value)) return true;
-        // not in the queue? get it from the enumerator.
-        if (enumerator.MoveNext())
-        {
-            value = enumerator.Current;
-            return true;
-        }
-
-        value = null;
-        return false;
-    }
-
     private static IEnumerable<Pair> GetPairs(IEnumerable<string> tokens)
     {
         var queue = new Queue<string>();
@@ -439,7 +385,7 @@ public static class Ifconfig
         // first token should always be the interface name.
         yield return new Pair("InterfaceName", enumerator.Current, []);
 
-        while (TryGetValue(enumerator, queue, out var token))
+        while (Helpers.TryGetValue(enumerator, queue, out var token))
         {
             if (groupKeywords.TryGetValue(token, out var groupKeyword))
             {
@@ -504,7 +450,7 @@ public static class Ifconfig
             );
         }
 
-        while (TryGetValue(enumerator, queue, out var nextToken))
+        while (Helpers.TryGetValue(enumerator, queue, out var nextToken))
         {
             if (groupDefinition.Keywords.TryGetValue(nextToken, out var kind))
             {
@@ -559,7 +505,7 @@ public static class Ifconfig
 
         pairChildren.AddRange(HandleGroups(queue, enumerator, token, groupDefinition));
 
-        while (TryGetValue(enumerator, queue, out var nextToken))
+        while (Helpers.TryGetValue(enumerator, queue, out var nextToken))
         {
             if (nextToken == token)
             {
@@ -586,7 +532,7 @@ public static class Ifconfig
         var escape = false;
         foreach (var item in definition[token].Keywords)
         {
-            if (!TryGetValue(enumerator, queue, out var nextItem))
+            if (!Helpers.TryGetValue(enumerator, queue, out var nextItem))
             {
                 yield break;
             }
@@ -626,7 +572,7 @@ public static class Ifconfig
         {
             // grab tokens until newline.
             var value = string.Empty;
-            while (TryGetValue(enumerator, queue, out var nextItem) && nextItem != NewLine)
+            while (Helpers.TryGetValue(enumerator, queue, out var nextItem) && nextItem != NewLine)
             {
                 value += $" {nextItem}";
             }
@@ -636,7 +582,7 @@ public static class Ifconfig
         }
         else if (kind == Next)
         {
-            if (TryGetValue(enumerator, queue, out var value))
+            if (Helpers.TryGetValue(enumerator, queue, out var value))
             {
                 if (token == "inet6")
                 {
@@ -659,7 +605,7 @@ public static class Ifconfig
         }
         else if (kind == Options)
         {
-            if (TryGetValue(enumerator, queue, out var value))
+            if (Helpers.TryGetValue(enumerator, queue, out var value))
             {
                 var items = value.Split('<');
                 var optionList = Array.Empty<Pair>();
@@ -730,7 +676,7 @@ public static class Ifconfig
 
             // sometimes the key:value pairs are separated
             //  by a single colon.  split these.
-            var colonCount = Parser.CountChars(sb, ':');
+            var colonCount = Helpers.CountChars(sb, ':');
             if (colonCount[':'] == 1)
             {
                 var tokens = sb.ToString().Split(':');

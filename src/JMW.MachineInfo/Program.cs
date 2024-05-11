@@ -10,7 +10,7 @@ internal class Program
     {
         Options? options = null;
 
-        CommandLine.Parser
+        Parser
            .Default
            .ParseArguments<Options>(args)
            .WithParsed(
@@ -31,6 +31,19 @@ internal class Program
             using var process = new Process();
             process.StartInfo.FileName = "ifconfig";
             process.StartInfo.Arguments = "-a -v";
+            process.StartInfo.UseShellExecute = false;
+            process.StartInfo.RedirectStandardOutput = true;
+            process.Start();
+
+            // Synchronously read the standard output of the spawned process.
+            Ifconfig.Parse(process.StandardOutput, Console.Out, parsingOpts);
+            process.WaitForExit();
+        }
+        else if (options.UseScutilDns)
+        {
+            using var process = new Process();
+            process.StartInfo.FileName = "scutil";
+            process.StartInfo.Arguments = "--dns";
             process.StartInfo.UseShellExecute = false;
             process.StartInfo.RedirectStandardOutput = true;
             process.Start();

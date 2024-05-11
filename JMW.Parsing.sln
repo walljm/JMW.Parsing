@@ -3,7 +3,7 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.8.34408.163
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "JMW.Parser", "src\JMW.Parser\JMW.Parser.csproj", "{11637AEE-ACE9-482B-9ED2-885098356697}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "JMW.MachineInfo", "src\JMW.MachineInfo\JMW.MachineInfo.csproj", "{11637AEE-ACE9-482B-9ED2-885098356697}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "JMW.Parsing", "src\JMW.Parsing\JMW.Parsing.csproj", "{5619AAC6-E4CD-48EF-8B6D-4DB27966E348}"
 EndProject

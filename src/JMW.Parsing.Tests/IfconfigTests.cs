@@ -956,7 +956,7 @@ en7: flags=8863<UP,BROADCAST,SMART,RUNNING,SIMPLEX,MULTICAST> mtu 1500
 
         var actualOutput = writer.ToString();
         testOutputHelper.WriteLine(actualOutput);
-        Assert.Equal(expectedJson, actualOutput);
+        Assert.Equal(expectedJson.Replace("\r\n", "\n"), actualOutput.Replace("\r\n", "\n"));
     }
 
     [Fact]
@@ -1244,7 +1244,7 @@ wlp2s0: flags=4163<UP,BROADCAST,RUNNING,MULTICAST>  mtu 1500
 
         var actualOutput = writer.ToString();
         testOutputHelper.WriteLine(actualOutput);
-        Assert.Equal(expectedJson, actualOutput);
+        Assert.Equal(expectedJson.Replace("\r\n", "\n"), actualOutput.Replace("\r\n", "\n"));
     }
 
     [Fact]
@@ -1923,6 +1923,6 @@ ztrfyb5gbi: flags=4163<UP,BROADCAST,RUNNING,MULTICAST>  mtu 2800
 
         var actualOutput = writer.ToString();
         testOutputHelper.WriteLine(actualOutput);
-        Assert.Equal(expectedJson, actualOutput);
+        Assert.Equal(expectedJson.Replace("\r\n", "\n"), actualOutput.Replace("\r\n", "\n"));
     }
 }

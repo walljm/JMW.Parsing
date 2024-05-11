@@ -52,7 +52,7 @@ public class Tokenizer
 
     public static BlockData GetBlockData(TextReader reader)
     {
-        var blocks = Parser.GetBlocks(reader);
+        var blocks = Helpers.GetBlocks(reader);
         var groups = GetGroups(blocks, 500);
 
         return groups.Select(CommonTokens).Aggregate((p, c) =>
