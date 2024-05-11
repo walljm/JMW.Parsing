@@ -1,5 +1,6 @@
 ﻿using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
+using System.Runtime.InteropServices;
 using CommandLine;
 using JMW.Parsing;
 
@@ -41,6 +42,11 @@ internal class Program
         }
         else if (options.UseScutilDns)
         {
+            if (!RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
+            {
+                Console.WriteLine("Unable to run scutil --dns on a non MacOS platform.");
+            }
+            
             using var process = new Process();
             process.StartInfo.FileName = "scutil";
             process.StartInfo.Arguments = "--dns";
