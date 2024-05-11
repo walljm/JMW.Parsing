@@ -1,6 +1,9 @@
 using System.Diagnostics.CodeAnalysis;
+using System.IO.Compression;
 using System.Text;
 using System.Text.Json;
+using JMW.Parsing.Models;
+using VAE.Common.Parsing.Tables;
 
 namespace JMW.Parsing;
 
@@ -80,292 +83,230 @@ public static class Ifconfig
 
     #region Classes and Constants
 
-    private record Pair(string Key, string Value, Pair[] Children, ChildType ChildType = ChildType.StringType)
+    private enum TokenKind
     {
-        public void WriteJson(Utf8JsonWriter writer, bool ignoreKey = false)
-        {
-            switch (ChildType)
-            {
-                case ChildType.StringType:
-
-                    writer.WriteString(Helpers.CleanKey(Key), Value);
-                    break;
-                case ChildType.ObjectType:
-                {
-                    if (ignoreKey)
-                    {
-                        writer.WriteStartObject();
-                    }
-                    else
-                    {
-                        writer.WriteStartObject(Helpers.CleanKey(Key));
-                    }
-
-                    foreach (var child in Children)
-                    {
-                        child.WriteJson(writer);
-                    }
-
-                    writer.WriteEndObject();
-                }
-                    break;
-                case ChildType.ArrayType:
-                    if (ignoreKey)
-                    {
-                        writer.WriteStartArray();
-                    }
-                    else
-                    {
-                        writer.WriteStartArray(Helpers.CleanKey(Key));
-                    }
-
-                    foreach (var child in Children)
-                    {
-                        if (child.ChildType == ChildType.StringType)
-                        {
-                            writer.WriteStringValue(child.Value);
-                        }
-                        else
-                        {
-                            child.WriteJson(writer, true);
-                        }
-                    }
-
-                    writer.WriteEndArray();
-                    break;
-            }
-        }
-
-        public void WriteKeyValues(TextWriter writer, int indent = 0)
-        {
-            writer.WriteLine($"{string.Empty.PadLeft(indent)}{Helpers.CleanKey(Key)}: {Value}");
-            if (Children.Length > 0)
-            {
-                foreach (var child in Children)
-                {
-                    child.WriteKeyValues(writer, indent + 4);
-                }
-            }
-        }
+        NewLine,
+        Next,
+        Single,
+        Options,
+        Drop,
+        Group,
     }
 
-    private record GroupDefinition(
-        string Kind,
-        Dictionary<string, string> Keywords,
-        Dictionary<string, MultipleDefinition> MultipleKeywords
+    private enum TokenType
+    {
+        Single,
+        Multiple,
+        Group,
+        MultipleGroup
+    }
+
+    private record TokenDef(
+        TokenKind Kind,
+        TokenType Type,
+        HashSet<string>? MultipleKeywords = default,
+        Dictionary<string, TokenDef>? GroupKeywords = default,
+        bool IsArray = false,
+        bool ShouldMerge = false
     );
 
-    private record MultipleDefinition(
-        string Kind,
-        Dictionary<string, string> Keywords
-    );
-
-    private static readonly HashSet<string> arrayPairs =
-    [
-        "inet",
-        "inet6",
-        "agent",
-        "member",
-    ];
-
-    private static readonly HashSet<string> mergePairs =
-    [
-        "RX",
-        "TX",
-    ];
-
-    private const string NewLine = "<newline>";
-    private const string Next = "<next>";
-    private const string Single = "<single>";
-    private const string Options = "<options>";
-    private const string Group = "<group>";
-    private const string GroupNext = "<groupnext>";
-    private const string Drop = "<drop>";
-
-    private static readonly Dictionary<string, string> singleKeywords = new()
+    private static readonly Dictionary<string, TokenDef> Tokens = new()
     {
-        { "flags", Options },
-        { "eflags", Options },
-        { "xflags", Options },
-        { "hwassist", Options },
-        { "mtu", Next },
-        { "ether", Next },
-        { "media", NewLine },
-        { "status", Next },
-        { "priority", Next },
-        { "type", NewLine },
-        { "desc", NewLine },
-        { "scheduler", Next },
-        { "routermode4", Next },
-        { "routermode6", Next },
-        { "netif", Next },
-        { "flowswitch", Next },
-        { "options", Options },
-        { "index", Next },
-        { "txqueuelen", Next },
-        { "unspec", Next },
-        { "loop", Single }
-    };
+        { "flags", new TokenDef(TokenKind.Options, TokenType.Single) },
+        { "eflags", new TokenDef(TokenKind.Options, TokenType.Single) },
+        { "xflags", new TokenDef(TokenKind.Options, TokenType.Single) },
+        { "hwassist", new TokenDef(TokenKind.Options, TokenType.Single) },
+        { "mtu", new TokenDef(TokenKind.Next, TokenType.Single) },
+        { "ether", new TokenDef(TokenKind.Next, TokenType.Single) },
+        { "media", new TokenDef(TokenKind.NewLine, TokenType.Single) },
+        { "status", new TokenDef(TokenKind.Next, TokenType.Single) },
+        { "priority", new TokenDef(TokenKind.Next, TokenType.Single) },
+        { "type", new TokenDef(TokenKind.NewLine, TokenType.Single) },
+        { "desc", new TokenDef(TokenKind.NewLine, TokenType.Single) },
+        { "scheduler", new TokenDef(TokenKind.Next, TokenType.Single) },
+        { "routermode4", new TokenDef(TokenKind.Next, TokenType.Single) },
+        { "routermode6", new TokenDef(TokenKind.Next, TokenType.Single) },
+        { "netif", new TokenDef(TokenKind.Next, TokenType.Single) },
+        { "flowswitch", new TokenDef(TokenKind.Next, TokenType.Single) },
+        { "options", new TokenDef(TokenKind.Options, TokenType.Single) },
+        { "index", new TokenDef(TokenKind.Next, TokenType.Single) },
+        { "txqueuelen", new TokenDef(TokenKind.Next, TokenType.Single) },
+        { "unspec", new TokenDef(TokenKind.Next, TokenType.Single) },
+        { "loop", new TokenDef(TokenKind.Single, TokenType.Single) },
 
-    private static readonly Dictionary<string, GroupDefinition> groupKeywords = new()
-    {
-        {
-            "Configuration", new GroupDefinition(
-                NewLine,
-                new Dictionary<string, string>
-                {
-                    { "id", Next },
-                    { "priority", Next },
-                    { "hellotime", Next },
-                    { "fwddelay", Next },
-                    { "maxage", Next },
-                    { "holdcnt", Next },
-                    { "proto", Next },
-                    { "maxaddr", Next },
-                    { "timeout", Next },
-                    { "ifcost", Next },
-                    { "port", Next },
-                    { "ipfilter", Next },
-                    { "flags", Next },
-                    { "root", Group }
-                },
-                []
-            )
-        },
+        // Multiple
+        { "nd6", new TokenDef( TokenKind.Options, TokenType.Multiple,  [ "options" ]) },
+        { "root", new TokenDef( TokenKind.Next, TokenType.Multiple,  [ "id" ]) },
+        { "path", new TokenDef( TokenKind.Next, TokenType.Multiple,  [ "cost" ]) },
+        { "state", new TokenDef( TokenKind.Next, TokenType.Multiple,  [ "availability" ]) },
+        { "qosmarking", new TokenDef( TokenKind.Next, TokenType.Multiple,  [ "enabled" ]) },
+        { "generation", new TokenDef( TokenKind.Next, TokenType.Multiple,  [ "id" ]) },
+        { "uplink", new TokenDef( TokenKind.Next, TokenType.Multiple,  [ "rate" ]) },
+        { "downlink", new TokenDef( TokenKind.Next, TokenType.Multiple,  [ "rate" ]) },
+        { "low", new TokenDef( TokenKind.Next, TokenType.Multiple,  [ "power", "mode" ]) },
+        { "link", new TokenDef( TokenKind.Next, TokenType.Multiple,  [ "rate", "quality" ]) },
+        { "multi", new TokenDef( TokenKind.Next, TokenType.Multiple, [ "layer", "packet", "logging", "(mpklog)" ]) },
 
+        // groups
         {
-            "member", new GroupDefinition(
-                GroupNext,
-                new Dictionary<string, string>
+            "Configuration:",
+            new TokenDef(
+                TokenKind.NewLine,
+                TokenType.Group,
+                [],
+                new ()
                 {
-                    { "flags", Options },
-                    { "ifmaxaddr", Next },
-                    { "port", Next },
-                    { "priority", Next },
-                    { "hostfilter", Next },
-                    { "hw", Next },
-                    { "ip", Next }
+                    { "id", new (TokenKind.Next, TokenType.Single) },
+                    { "priority", new (TokenKind.Next, TokenType.Single) },
+                    { "hellotime", new (TokenKind.Next, TokenType.Single) },
+                    { "fwddelay", new (TokenKind.Next, TokenType.Single) },
+                    { "maxage", new (TokenKind.Next, TokenType.Single) },
+                    { "holdcnt", new (TokenKind.Next, TokenType.Single) },
+                    { "proto", new (TokenKind.Next, TokenType.Single) },
+                    { "maxaddr", new (TokenKind.Next, TokenType.Single) },
+                    { "timeout", new (TokenKind.Next, TokenType.Single) },
+                    { "ifcost", new (TokenKind.Next, TokenType.Single) },
+                    { "port", new (TokenKind.Next, TokenType.Single) },
+                    { "ipfilter", new (TokenKind.Next, TokenType.Single) },
+                    { "flags", new (TokenKind.Next, TokenType.Single) },
+                    { "root", new (TokenKind.Single, TokenType.Group) },
                 },
-                new Dictionary<string, MultipleDefinition>
-                {
-                    { "path", new MultipleDefinition(Next, new Dictionary<string, string> { { "cost", Next } }) }
-                }
-            )
-        },
-
-        {
-            "agent", new GroupDefinition(
-                Group,
-                new Dictionary<string, string>
-                {
-                    { "domain", Next },
-                    { "type", Next },
-                    { "flags", Next },
-                    { "desc", NewLine }
-                },
-                []
-            )
-        },
-
-        {
-            "root", new GroupDefinition(
-                Group,
-                new Dictionary<string, string>
-                {
-                    { "id", Next },
-                    { "priority", Next },
-                    { "ifcost", Next },
-                    { "port", Next },
-                    { "ipfilter", Next },
-                    { "flags", Options },
-                    { "member", Group }
-                },
-                []
-            )
-        },
-
-        {
-            "inet6", new GroupDefinition(
-                GroupNext,
-                new Dictionary<string, string>
-                {
-                    { "prefixlen", Next },
-                    { "scopeid", Next },
-                    { "secured", Single }
-                },
-                []
+                false,
+                false
             )
         },
         {
-            "inet", new GroupDefinition(
-                GroupNext,
-                new Dictionary<string, string>
+            "member",
+            new TokenDef(
+                TokenKind.Next,
+                TokenType.MultipleGroup,
+                [
+                    "path", "cost",
+                ],
+                new ()
                 {
-                    { "netmask", Next },
-                    { "broadcast", Next }
+                    { "flags", new (TokenKind.Options, TokenType.Single) },
+                    { "ifmaxaddr", new (TokenKind.Next, TokenType.Single) },
+                    { "port", new (TokenKind.Next, TokenType.Single) },
+                    { "priority", new (TokenKind.Next, TokenType.Single) },
+                    { "hostfilter", new (TokenKind.Next, TokenType.Single) },
+                    { "hw", new (TokenKind.Next, TokenType.Single) },
+                    { "ip", new (TokenKind.Next, TokenType.Single) },
                 },
-                []
+                true,
+                false
             )
         },
         {
-            "RX", new GroupDefinition(
-                Group,
-                new Dictionary<string, string>
+            "agent",
+            new TokenDef(
+                TokenKind.Single,
+                TokenType.Group,
+                [],
+                new ()
                 {
-                    { "packets", Next },
-                    { "errors", Next },
-                    { "dropped", Next },
-                    { "overruns", Next },
-                    { "carrier", Next },
-                    { "frame", Next },
-                    { "collisions", Next },
-                    { "bytes", NewLine }
+                    { "domain", new (TokenKind.Next, TokenType.Single) },
+                    { "type", new (TokenKind.Next, TokenType.Single) },
+                    { "flags", new (TokenKind.Next, TokenType.Single) },
+                    { "desc", new (TokenKind.NewLine, TokenType.Single) },
                 },
-                []
+                true,
+                false
             )
         },
         {
-            "TX", new GroupDefinition(
-                Group,
-                new Dictionary<string, string>
+            "root",
+            new TokenDef(
+                TokenKind.Single,
+                TokenType.Group,
+                [],
+                new ()
                 {
-                    { "packets", Next },
-                    { "errors", Next },
-                    { "dropped", Next },
-                    { "overruns", Next },
-                    { "carrier", Next },
-                    { "frame", Next },
-                    { "collisions", Next },
-                    { "bytes", NewLine }
+                    { "id", new(TokenKind.Next, TokenType.Single) },
+                    { "priority", new(TokenKind.Next, TokenType.Single) },
+                    { "ifcost", new(TokenKind.Next, TokenType.Single) },
+                    { "port", new(TokenKind.Next, TokenType.Single) },
+                    { "ipfilter", new(TokenKind.Next, TokenType.Single) },
+                    { "flags", new(TokenKind.Options, TokenType.Single) },
+                    { "member", new(TokenKind.Single, TokenType.Group) },
                 },
-                []
+                false,
+                false
             )
-        }
-    };
-
-    private static readonly Dictionary<string, MultipleDefinition> multipleKeywords = new()
-    {
-        { "nd6", new MultipleDefinition(Options, new Dictionary<string, string> { { "options", Options } }) },
-        { "root", new MultipleDefinition(Next, new Dictionary<string, string> { { "id", Next } }) },
-        { "path", new MultipleDefinition(Next, new Dictionary<string, string> { { "cost", Next } }) },
-        { "state", new MultipleDefinition(Next, new Dictionary<string, string> { { "availability", Next } }) },
-        { "qosmarking", new MultipleDefinition(Next, new Dictionary<string, string> { { "enabled", Next } }) },
-        { "generation", new MultipleDefinition(Next, new Dictionary<string, string> { { "id", Next } }) },
-        { "uplink", new MultipleDefinition(Next, new Dictionary<string, string> { { "rate", Next } }) },
-        { "downlink", new MultipleDefinition(Next, new Dictionary<string, string> { { "rate", Next } }) },
-        { "low", new MultipleDefinition(Next, new Dictionary<string, string> { { "power", Next }, { "mode", Next } }) },
-        {
-            "link",
-            new MultipleDefinition(Next, new Dictionary<string, string> { { "rate", Next }, { "quality", Next } })
         },
         {
-            "multi",
-            new MultipleDefinition(
-                Next,
-                new Dictionary<string, string>
-                    { { "layer", Next }, { "packet", Next }, { "logging", Next }, { "(mpklog)", Drop } }
+            "inet6",
+            new TokenDef(
+                TokenKind.Next,
+                TokenType.Group,
+                [],
+                new ()
+                {
+                    { "prefixlen", new(TokenKind.Next, TokenType.Single) },
+                    { "scopeid", new(TokenKind.Next, TokenType.Single) },
+                    { "secured", new(TokenKind.Single, TokenType.Single) },
+                },
+                true,
+                false
             )
-        }
+        },
+        {
+            "inet",
+            new TokenDef(
+                TokenKind.Next,
+                TokenType.Group,
+                [],
+                new ()
+                {
+                    { "netmask", new(TokenKind.Next, TokenType.Single) },
+                    { "broadcast", new(TokenKind.Next, TokenType.Single) },
+                },
+                true,
+                false
+            )
+        },
+        {
+            "RX",
+            new TokenDef(
+                TokenKind.Single,
+                TokenType.Group,
+                [],
+                new ()
+                {
+                    { "packets", new(TokenKind.Next, TokenType.Single) },
+                    { "errors", new(TokenKind.Next, TokenType.Single) },
+                    { "dropped", new(TokenKind.Next, TokenType.Single) },
+                    { "overruns", new(TokenKind.Next, TokenType.Single) },
+                    { "carrier", new(TokenKind.Next, TokenType.Single) },
+                    { "frame", new(TokenKind.Next, TokenType.Single) },
+                    { "collisions", new(TokenKind.Next, TokenType.Single) },
+                    { "bytes", new(TokenKind.NewLine, TokenType.Single) },
+                },
+                false,
+                true
+            )
+        },
+        {
+            "TX",
+            new TokenDef(
+                TokenKind.Single,
+                TokenType.Group,
+                [],
+                new ()
+                {
+                    { "packets", new(TokenKind.Next, TokenType.Single) },
+                    { "errors", new(TokenKind.Next, TokenType.Single) },
+                    { "dropped", new(TokenKind.Next, TokenType.Single) },
+                    { "overruns", new(TokenKind.Next, TokenType.Single) },
+                    { "carrier", new(TokenKind.Next, TokenType.Single) },
+                    { "frame", new(TokenKind.Next, TokenType.Single) },
+                    { "collisions", new(TokenKind.Next, TokenType.Single) },
+                    { "bytes", new(TokenKind.NewLine, TokenType.Single) },
+                },
+                false,
+                true
+            )
+        },
     };
 
     #endregion
@@ -387,18 +328,23 @@ public static class Ifconfig
 
         while (Helpers.TryGetValue(enumerator, queue, out var token))
         {
-            if (groupKeywords.TryGetValue(token, out var groupKeyword))
+            if (!Tokens.TryGetValue(token, out var tokenDef))
             {
-                if (arrayPairs.Contains(token))
+                continue;
+            }
+
+            if (tokenDef.Type == TokenType.Group)
+            {
+                if (tokenDef.IsArray)
                 {
-                    foreach (var item in HandleArrayKeywords(queue, enumerator, token, groupKeyword))
+                    foreach (var item in HandleArrayKeywords(queue, enumerator, token, tokenDef))
                     {
                         yield return item;
                     }
                 }
-                else if (mergePairs.Contains(token))
+                else if (tokenDef.ShouldMerge)
                 {
-                    var children = HandleArrayKeywords(queue, enumerator, token, groupKeyword)
+                    var children = HandleArrayKeywords(queue, enumerator, token, tokenDef)
                        .SelectMany(o => o.Children.SelectMany(c => c.Children))
                        .ToArray();
 
@@ -407,24 +353,23 @@ public static class Ifconfig
                 }
                 else
                 {
-                    foreach (var item in HandleGroups(queue, enumerator, token, groupKeyword))
+                    foreach (var item in HandleGroups(queue, enumerator, token, tokenDef))
                     {
                         yield return item;
                     }
                 }
             }
-            else if (multipleKeywords.ContainsKey(token))
+            else if (tokenDef.Type == TokenType.Multiple)
             {
-                foreach (var item in HandleMultipleKeywords(queue, enumerator, multipleKeywords, token, token))
+                foreach (var item in HandleMultipleKeywords(queue, enumerator, token, tokenDef))
                 {
                     yield return item;
                 }
             }
-            else if (singleKeywords.TryGetValue(token, out var kind))
+            else if (tokenDef.Type == TokenType.Single)
             {
                 if (token is null) throw new InvalidOperationException("Token can't be null");
-
-                foreach (var item in HandleSingleKeyword(queue, enumerator, kind, token))
+                foreach (var item in HandleSingleKeyword(queue, enumerator, token, tokenDef))
                 {
                     yield return item;
                 }
@@ -436,25 +381,24 @@ public static class Ifconfig
         Queue<string> queue,
         IEnumerator<string> enumerator,
         string token,
-        GroupDefinition groupDefinition
+        TokenDef tokenDef
     )
     {
         var key = token;
         var pairChildren = new List<Pair>();
         var value = string.Empty;
-
-        if (groupDefinition.Kind == GroupNext)
+        if (tokenDef.Kind == TokenKind.Next)
         {
             pairChildren.AddRange(
-                HandleSingleKeyword(queue, enumerator, Next, token)
+                HandleSingleKeyword(queue, enumerator, TokenKind.Next, token)
             );
         }
 
         while (Helpers.TryGetValue(enumerator, queue, out var nextToken))
         {
-            if (groupDefinition.Keywords.TryGetValue(nextToken, out var kind))
+            if (tokenDef.GroupKeywords.TryGetValue(nextToken, out var kind))
             {
-                if (groupKeywords.TryGetValue(nextToken, out var childGroup))
+                if (tokenDef.GroupKeywords.TryGetValue(nextToken, out var childGroup))
                 {
                     if (arrayPairs.Contains(nextToken))
                     {
@@ -502,7 +446,6 @@ public static class Ifconfig
         var key = $"{token}s";
         var pairChildren = new List<Pair>();
         var value = string.Empty;
-
         pairChildren.AddRange(HandleGroups(queue, enumerator, token, groupDefinition));
 
         while (Helpers.TryGetValue(enumerator, queue, out var nextToken))
@@ -564,11 +507,11 @@ public static class Ifconfig
     private static IEnumerable<Pair> HandleSingleKeyword(
         Queue<string> queue,
         IEnumerator<string> enumerator,
-        string kind,
+        TokenKind kind,
         string token
     )
     {
-        if (kind == NewLine)
+        if (kind == TokenKind.NewLine)
         {
             // grab tokens until newline.
             var value = string.Empty;
@@ -580,7 +523,7 @@ public static class Ifconfig
             // last item is a newline, which we can ignore,
             yield return new Pair(token, value.Trim(), []);
         }
-        else if (kind == Next)
+        else if (kind == TokenKind.Next)
         {
             if (Helpers.TryGetValue(enumerator, queue, out var value))
             {
@@ -599,17 +542,16 @@ public static class Ifconfig
                 }
             }
         }
-        else if (kind == Single)
+        else if (kind == TokenKind.Single)
         {
             yield return new Pair(token, "true", []);
         }
-        else if (kind == Options)
+        else if (kind == TokenKind.Options)
         {
             if (Helpers.TryGetValue(enumerator, queue, out var value))
             {
                 var items = value.Split('<');
                 var optionList = Array.Empty<Pair>();
-
                 if (items.Length > 1)
                 {
                     optionList = items[1].Trim('>').Split(',').Select(o => new Pair($"{token} item", o, [])).ToArray();
@@ -620,7 +562,6 @@ public static class Ifconfig
                     new Pair("Bits", items[0], []),
                     new Pair("Values", string.Empty, optionList, ChildType.ArrayType),
                 };
-
                 yield return new Pair(token, string.Empty, [.. pairChildren], ChildType.ObjectType);
             }
         }
