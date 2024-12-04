@@ -241,7 +241,7 @@ resolver #2
 
         using var reader = new StringReader(ifconfigOutput);
         using var writer = new StringWriter();
-        ScutilDns.Parse(reader, writer, new ParsingOptions(OutputType.Json));
+        ScutilDns.Parse(reader, writer, new DisplayOptions(OutputType.Json));
 
         var actualOutput = writer.ToString();
         testOutputHelper.WriteLine(actualOutput);

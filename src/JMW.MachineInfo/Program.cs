@@ -1,12 +1,10 @@
 ﻿using System.Diagnostics;
-using System.Diagnostics.CodeAnalysis;
 using System.Runtime.InteropServices;
 using CommandLine;
 using JMW.Parsing;
 
-internal class Program
+public class Program
 {
-    [DynamicDependency(DynamicallyAccessedMemberTypes.All, typeof(Options))]
     private static void Main(string[] args)
     {
         Options? options = null;
@@ -26,7 +24,7 @@ internal class Program
             return;
         }
 
-        var parsingOpts = new ParsingOptions(options.UseJson ? OutputType.Json : OutputType.KeyValue);
+        var parsingOpts = new DisplayOptions(options.OutputType, options.Filter);
         if (options.UseIfconfig)
         {
             using var process = new Process();
@@ -46,7 +44,7 @@ internal class Program
             {
                 Console.WriteLine("Unable to run scutil --dns on a non MacOS platform.");
             }
-            
+
             using var process = new Process();
             process.StartInfo.FileName = "scutil";
             process.StartInfo.Arguments = "--dns";

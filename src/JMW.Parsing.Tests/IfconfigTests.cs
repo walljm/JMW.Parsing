@@ -952,7 +952,7 @@ en7: flags=8863<UP,BROADCAST,SMART,RUNNING,SIMPLEX,MULTICAST> mtu 1500
 
         using var reader = new StringReader(ifconfigOutput);
         using var writer = new StringWriter();
-        Ifconfig.Parse(reader, writer, new ParsingOptions(OutputType.Json));
+        Ifconfig.Parse(reader, writer, new DisplayOptions(OutputType.Json));
 
         var actualOutput = writer.ToString();
         testOutputHelper.WriteLine(actualOutput);
@@ -1846,7 +1846,7 @@ en7: flags=8863<UP,BROADCAST,SMART,RUNNING,SIMPLEX,MULTICAST> mtu 1500
 
         using var reader = new StringReader(ifconfigOutput);
         using var writer = new StringWriter();
-        Ifconfig.Parse(reader, writer, new ParsingOptions(OutputType.Json));
+        Ifconfig.Parse(reader, writer, new DisplayOptions(OutputType.Json, null));
 
         var actualOutput = writer.ToString();
         testOutputHelper.WriteLine(actualOutput);
@@ -2134,7 +2134,7 @@ wlp2s0: flags=4163<UP,BROADCAST,RUNNING,MULTICAST>  mtu 1500
 
         using var reader = new StringReader(ifconfigOutput);
         using var writer = new StringWriter();
-        Ifconfig.Parse(reader, writer, new ParsingOptions(OutputType.Json));
+        Ifconfig.Parse(reader, writer, new DisplayOptions(OutputType.Json));
 
         var actualOutput = writer.ToString();
         testOutputHelper.WriteLine(actualOutput);
@@ -2813,7 +2813,7 @@ ztrfyb5gbi: flags=4163<UP,BROADCAST,RUNNING,MULTICAST>  mtu 2800
 
         using var reader = new StringReader(ifconfigOutput);
         using var writer = new StringWriter();
-        Ifconfig.Parse(reader, writer, new ParsingOptions(OutputType.Json));
+        Ifconfig.Parse(reader, writer, new DisplayOptions(OutputType.Json));
 
         var actualOutput = writer.ToString();
         testOutputHelper.WriteLine(actualOutput);

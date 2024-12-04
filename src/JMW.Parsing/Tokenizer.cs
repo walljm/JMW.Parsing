@@ -1,4 +1,3 @@
-using System.Text;
 using Superpower;
 using Superpower.Model;
 using Superpower.Parsers;
@@ -9,7 +8,7 @@ namespace JMW.Parsing;
 public enum TokenTypes
 {
     Word,
-    Whitespace
+    Whitespace,
 }
 
 public record BlockData(HashSet<string> CommonTokens, List<string[]> Blocks);
@@ -17,13 +16,15 @@ public record BlockData(HashSet<string> CommonTokens, List<string[]> Blocks);
 public class Tokenizer
 {
     private static TextParser<char> AnyNoneWhitespaceChar { get; } =
-        Character.Matching(c =>
-                   !char.IsWhiteSpace(c)
-                //&& !char.IsPunctuation(c)
-                //&& c != ')'
-                //&& c != '('
-            ,
-            "any non whitespace char");
+        Character.Matching(
+            c =>
+                !char.IsWhiteSpace(c)
+            //&& !char.IsPunctuation(c)
+            //&& c != ')'
+            //&& c != '('
+           ,
+            "any non whitespace char"
+        );
 
     private static TextParser<TextSpan> TextMatcher { get; } =
         Span.MatchedBy(AnyNoneWhitespaceChar.Many());
@@ -33,11 +34,11 @@ public class Tokenizer
     static Tokenizer()
     {
         tokenizer = new TokenizerBuilder<TokenTypes>()
-            .Ignore(Character.WhiteSpace)
+           .Ignore(Character.WhiteSpace)
             //.Ignore(Character.Matching(c => char.IsPunctuation(c), "punctuation"))
             //.Ignore(Character.Matching(c => c == ')' || c == '(', "parens"))
-            .Match(TextMatcher, TokenTypes.Word)
-            .Build();
+           .Match(TextMatcher, TokenTypes.Word)
+           .Build();
     }
 
     public static IEnumerable<Token<TokenTypes>> Tokenize(string text)
@@ -55,12 +56,15 @@ public class Tokenizer
         var blocks = Helpers.GetBlocks(reader);
         var groups = GetGroups(blocks, 500);
 
-        return groups.Select(CommonTokens).Aggregate((p, c) =>
-        {
-            p.CommonTokens.UnionWith(c.CommonTokens);
-            p.Blocks.AddRange(c.Blocks);
-            return p;
-        });
+        return groups.Select(CommonTokens)
+           .Aggregate(
+                (p, c) =>
+                {
+                    p.CommonTokens.UnionWith(c.CommonTokens);
+                    p.Blocks.AddRange(c.Blocks);
+                    return p;
+                }
+            );
     }
 
     private static BlockData CommonTokens(IEnumerable<string> blocks)

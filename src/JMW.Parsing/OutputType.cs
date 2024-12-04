@@ -1,10 +1,10 @@
 namespace JMW.Parsing;
 
-
 public enum OutputType
 {
     Json,
-    KeyValue
+    Table,
+    KeyValue,
 }
 
 internal enum ChildType
@@ -14,4 +14,4 @@ internal enum ChildType
     ObjectType,
 }
 
-public record ParsingOptions(OutputType OutputType);
+public record DisplayOptions(OutputType OutputType, string? Filter = null);

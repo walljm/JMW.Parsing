@@ -7,13 +7,13 @@ public static class ScutilDns
 {
     #region Public Parse/Output
 
-    public static void Parse(TextReader inputReader, TextWriter outputWriter, ParsingOptions parsingOptions)
+    public static void Parse(TextReader inputReader, TextWriter outputWriter, DisplayOptions displayOptions)
     {
-        if (parsingOptions.OutputType == OutputType.KeyValue)
+        if (displayOptions.OutputType == OutputType.KeyValue)
         {
             OutputKeyValues(inputReader, outputWriter);
         }
-        else if (parsingOptions.OutputType == OutputType.Json)
+        else if (displayOptions.OutputType == OutputType.Json)
         {
             OutputJson(inputReader, outputWriter);
         }
