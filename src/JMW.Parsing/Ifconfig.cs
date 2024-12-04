@@ -176,9 +176,10 @@ public static class Ifconfig
                .ToList();
         }
 
+        data = data.OrderBy(static o => o.Index).ThenBy(static o => o.Name).ToList();
+
         ConsoleTableBuilder
-           .From(data.OrderBy(static o => o.Index).ThenBy(static o => o.Name).ToList())
-           .WithColumn(columns)
+           .From(data)
            .WithFormat(ConsoleTableBuilderFormat.MarkDown)
            .ExportAndWriteLine();
     }
