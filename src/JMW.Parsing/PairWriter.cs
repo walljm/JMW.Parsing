@@ -3,7 +3,7 @@ using System.Text.Json;
 
 namespace JMW.Parsing;
 
-internal static class PairWriter
+public static class PairWriter
 {
     public static void WriteJson(IEnumerable<IReadOnlyList<Pair>> blocksOfPairs, TextWriter output)
     {

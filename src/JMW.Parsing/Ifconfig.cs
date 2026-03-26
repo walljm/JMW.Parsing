@@ -1,6 +1,5 @@
 using System.Globalization;
 using System.Net;
-using System.Text;
 using System.Text.RegularExpressions;
 using table.lib;
 
@@ -28,15 +27,24 @@ public static class Ifconfig
 
     public static void OutputKeyValues(TextReader inputReader, TextWriter outputWriter)
     {
-        PairWriter.WriteKeyValues(GetBlockPairs(inputReader), outputWriter);
+        PairWriter.WriteKeyValues(BlockParser.ParseBlocks(inputReader, Config), outputWriter);
     }
+
+    public static void OutputJson(TextReader inputReader, TextWriter outputWriter)
+    {
+        PairWriter.WriteJson(BlockParser.ParseBlocks(inputReader, Config), outputWriter);
+    }
+
+    #endregion
+
+    #region Table Output (ifconfig-specific)
 
     public static void OutputTable(TextReader inputReader, TextWriter outputWriter, DisplayOptions displayOptions)
     {
         #region Convert blocks to pocos
 
         var data = new List<Ifc>();
-        foreach (var pairs in GetBlockPairs(inputReader))
+        foreach (var pairs in BlockParser.ParseBlocks(inputReader, Config))
         {
 
             var ifc = new Ifc();
@@ -215,7 +223,6 @@ public static class Ifconfig
         if (mask.StartsWith("0x", StringComparison.OrdinalIgnoreCase)
          && uint.TryParse(mask.AsSpan(2), NumberStyles.HexNumber, null, out var hex))
         {
-            // macOS hex format: 0xffffff00
             bytes =
             [
                 (byte)(hex >> 24),
@@ -226,7 +233,6 @@ public static class Ifconfig
         }
         else if (IPAddress.TryParse(mask, out var ipAddress))
         {
-            // Linux decimal format: 255.255.255.0
             bytes = ipAddress.GetAddressBytes();
         }
         else
@@ -267,516 +273,291 @@ public static class Ifconfig
         public string Media { get; set; } = string.Empty;
     }
 
-    public static void OutputJson(TextReader inputReader, TextWriter outputWriter)
-    {
-        PairWriter.WriteJson(GetBlockPairs(inputReader), outputWriter);
-    }
-
-    private static IEnumerable<IReadOnlyList<Pair>> GetBlockPairs(TextReader inputReader)
-    {
-        var blocks = Helpers.GetBlocks(inputReader, trimInitialWhitespace: true, trimEndingWhitespace: false);
-        foreach (var block in blocks)
-        {
-            using var blockReader = new StringReader(block);
-            yield return GetPairs(Tokenize(blockReader)).ToArray();
-        }
-    }
-
     #endregion
 
-    #region Classes and Constants
+    #region Parser Configuration
 
-    private record GroupDefinition(
-        KeywordKind Kind,
-        Dictionary<string, KeywordKind> Keywords,
-        Dictionary<string, MultipleDefinition> MultipleKeywords
-    );
-
-    private record MultipleDefinition(
-        KeywordKind Kind,
-        Dictionary<string, KeywordKind> Keywords
-    );
-
-    private static readonly HashSet<string> arrayPairs =
-    [
-        "inet",
-        "inet6",
-        "agent",
-        "member",
-    ];
-
-    private static readonly HashSet<string> mergePairs =
-    [
-        "RX",
-        "TX",
-    ];
-
-    private static readonly Dictionary<string, KeywordKind> singleKeywords = new()
+    internal static readonly ParserConfig Config = new()
     {
-        { "flags", KeywordKind.Options },
-        { "eflags", KeywordKind.Options },
-        { "xflags", KeywordKind.Options },
-        { "hwassist", KeywordKind.Options },
-        { "mtu", KeywordKind.Next },
-        { "ether", KeywordKind.Next },
-        { "media", KeywordKind.NewLine },
-        { "status", KeywordKind.Next },
-        { "priority", KeywordKind.Next },
-        { "type", KeywordKind.NewLine },
-        { "desc", KeywordKind.NewLine },
-        { "scheduler", KeywordKind.Next },
-        { "routermode4", KeywordKind.Next },
-        { "routermode6", KeywordKind.Next },
-        { "netif", KeywordKind.Next },
-        { "flowswitch", KeywordKind.Next },
-        { "options", KeywordKind.Options },
-        { "index", KeywordKind.Next },
-        { "txqueuelen", KeywordKind.Next },
-        { "unspec", KeywordKind.Next },
-        { "loop", KeywordKind.Single },
+        Tokenizer = new TokenizerConfig
+        {
+            Separators = ['='],
+            StripTrailing = [':'],
+            SplitOnSingleColon = true,
+            EmitNewLineTokens = true,
+        },
+
+        OptionDelimiters = ('<', '>'),
+        OptionsReadUntilNewLine = false,
+        TrimInitialWhitespace = true,
+        TrimEndingWhitespace = false,
+        SupportsTableOutput = true,
+
+        FirstTokenHandler = static (enumerator, _) =>
+            [new Pair("InterfaceName", enumerator.Current, [])],
+
+        Keywords = BuildKeywords(),
     };
 
-    private static readonly Dictionary<string, GroupDefinition> groupKeywords = new()
+    private static Dictionary<string, KeywordDef> BuildKeywords()
     {
-        {
-            "Configuration", new GroupDefinition(
-                KeywordKind.NewLine,
-                new Dictionary<string, KeywordKind>
-                {
-                    { "id", KeywordKind.Next },
-                    { "priority", KeywordKind.Next },
-                    { "hellotime", KeywordKind.Next },
-                    { "fwddelay", KeywordKind.Next },
-                    { "maxage", KeywordKind.Next },
-                    { "holdcnt", KeywordKind.Next },
-                    { "proto", KeywordKind.Next },
-                    { "maxaddr", KeywordKind.Next },
-                    { "timeout", KeywordKind.Next },
-                    { "ifcost", KeywordKind.Next },
-                    { "port", KeywordKind.Next },
-                    { "ipfilter", KeywordKind.Next },
-                    { "flags", KeywordKind.Next },
-                    { "root", KeywordKind.Group },
-                },
-                []
-            )
-        },
+        var keywords = new Dictionary<string, KeywordDef>();
 
-        {
-            "member", new GroupDefinition(
-                KeywordKind.GroupNext,
-                new Dictionary<string, KeywordKind>
-                {
-                    { "flags", KeywordKind.Options },
-                    { "ifmaxaddr", KeywordKind.Next },
-                    { "port", KeywordKind.Next },
-                    { "priority", KeywordKind.Next },
-                    { "hostfilter", KeywordKind.Next },
-                    { "hw", KeywordKind.Next },
-                    { "ip", KeywordKind.Next },
-                },
-                new Dictionary<string, MultipleDefinition>
-                {
-                    { "path", new MultipleDefinition(KeywordKind.Next, new Dictionary<string, KeywordKind> { { "cost", KeywordKind.Next } }) },
-                }
-            )
-        },
+        // Single keywords
+        AddSingle(keywords, "flags", KeywordKind.Options);
+        AddSingle(keywords, "eflags", KeywordKind.Options);
+        AddSingle(keywords, "xflags", KeywordKind.Options);
+        AddSingle(keywords, "hwassist", KeywordKind.Options);
+        AddSingle(keywords, "mtu", KeywordKind.Next);
+        AddSingle(keywords, "ether", KeywordKind.Next);
+        AddSingle(keywords, "media", KeywordKind.NewLine);
+        AddSingle(keywords, "status", KeywordKind.Next);
+        AddSingle(keywords, "priority", KeywordKind.Next);
+        AddSingle(keywords, "type", KeywordKind.NewLine);
+        AddSingle(keywords, "desc", KeywordKind.NewLine);
+        AddSingle(keywords, "scheduler", KeywordKind.Next);
+        AddSingle(keywords, "routermode4", KeywordKind.Next);
+        AddSingle(keywords, "routermode6", KeywordKind.Next);
+        AddSingle(keywords, "netif", KeywordKind.Next);
+        AddSingle(keywords, "flowswitch", KeywordKind.Next);
+        AddSingle(keywords, "options", KeywordKind.Options);
+        AddSingle(keywords, "index", KeywordKind.Next);
+        AddSingle(keywords, "txqueuelen", KeywordKind.Next);
+        AddSingle(keywords, "unspec", KeywordKind.Next);
+        AddSingle(keywords, "loop", KeywordKind.Single);
 
+        // Group keywords
+        keywords["Configuration"] = new KeywordDef
         {
-            "agent", new GroupDefinition(
-                KeywordKind.Group,
-                new Dictionary<string, KeywordKind>
-                {
-                    { "domain", KeywordKind.Next },
-                    { "type", KeywordKind.Next },
-                    { "flags", KeywordKind.Next },
-                    { "desc", KeywordKind.NewLine },
-                },
-                []
-            )
-        },
-
-        {
-            "root", new GroupDefinition(
-                KeywordKind.Group,
-                new Dictionary<string, KeywordKind>
-                {
-                    { "id", KeywordKind.Next },
-                    { "priority", KeywordKind.Next },
-                    { "ifcost", KeywordKind.Next },
-                    { "port", KeywordKind.Next },
-                    { "ipfilter", KeywordKind.Next },
-                    { "flags", KeywordKind.Options },
-                    { "member", KeywordKind.Group },
-                },
-                []
-            )
-        },
-
-        {
-            "inet6", new GroupDefinition(
-                KeywordKind.GroupNext,
-                new Dictionary<string, KeywordKind>
-                {
-                    { "prefixlen", KeywordKind.Next },
-                    { "scopeid", KeywordKind.Next },
-                    { "secured", KeywordKind.Single },
-                },
-                []
-            )
-        },
-        {
-            "inet", new GroupDefinition(
-                KeywordKind.GroupNext,
-                new Dictionary<string, KeywordKind>
-                {
-                    { "netmask", KeywordKind.Next },
-                    { "broadcast", KeywordKind.Next },
-                },
-                []
-            )
-        },
-        {
-            "RX", new GroupDefinition(
-                KeywordKind.Group,
-                new Dictionary<string, KeywordKind>
-                {
-                    { "packets", KeywordKind.Next },
-                    { "errors", KeywordKind.Next },
-                    { "dropped", KeywordKind.Next },
-                    { "overruns", KeywordKind.Next },
-                    { "carrier", KeywordKind.Next },
-                    { "frame", KeywordKind.Next },
-                    { "collisions", KeywordKind.Next },
-                    { "bytes", KeywordKind.NewLine },
-                },
-                []
-            )
-        },
-        {
-            "TX", new GroupDefinition(
-                KeywordKind.Group,
-                new Dictionary<string, KeywordKind>
-                {
-                    { "packets", KeywordKind.Next },
-                    { "errors", KeywordKind.Next },
-                    { "dropped", KeywordKind.Next },
-                    { "overruns", KeywordKind.Next },
-                    { "carrier", KeywordKind.Next },
-                    { "frame", KeywordKind.Next },
-                    { "collisions", KeywordKind.Next },
-                    { "bytes", KeywordKind.NewLine },
-                },
-                []
-            )
-        },
-    };
-
-    private static readonly Dictionary<string, MultipleDefinition> multipleKeywords = new()
-    {
-        { "nd6", new MultipleDefinition(KeywordKind.Options, new Dictionary<string, KeywordKind> { { "options", KeywordKind.Options } }) },
-        { "root", new MultipleDefinition(KeywordKind.Next, new Dictionary<string, KeywordKind> { { "id", KeywordKind.Next } }) },
-        { "path", new MultipleDefinition(KeywordKind.Next, new Dictionary<string, KeywordKind> { { "cost", KeywordKind.Next } }) },
-        { "state", new MultipleDefinition(KeywordKind.Next, new Dictionary<string, KeywordKind> { { "availability", KeywordKind.Next } }) },
-        { "qosmarking", new MultipleDefinition(KeywordKind.Next, new Dictionary<string, KeywordKind> { { "enabled", KeywordKind.Next } }) },
-        { "generation", new MultipleDefinition(KeywordKind.Next, new Dictionary<string, KeywordKind> { { "id", KeywordKind.Next } }) },
-        { "uplink", new MultipleDefinition(KeywordKind.Next, new Dictionary<string, KeywordKind> { { "rate", KeywordKind.Next } }) },
-        { "downlink", new MultipleDefinition(KeywordKind.Next, new Dictionary<string, KeywordKind> { { "rate", KeywordKind.Next } }) },
-        { "low", new MultipleDefinition(KeywordKind.Next, new Dictionary<string, KeywordKind> { { "power", KeywordKind.Next }, { "mode", KeywordKind.Next } }) },
-        {
-            "link",
-            new MultipleDefinition(KeywordKind.Next, new Dictionary<string, KeywordKind> { { "rate", KeywordKind.Next }, { "quality", KeywordKind.Next } })
-        },
-        {
-            "multi",
-            new MultipleDefinition(
-                KeywordKind.Next,
-                new Dictionary<string, KeywordKind>
-                    { { "layer", KeywordKind.Next }, { "packet", KeywordKind.Next }, { "logging", KeywordKind.Next }, { "(mpklog)", KeywordKind.Drop } }
-            )
-        },
-    };
-
-    #endregion
-
-    #region Private Functions
-
-    private static IEnumerable<Pair> GetPairs(IEnumerable<string> tokens)
-    {
-        var queue = new Queue<string>();
-        using var enumerator = tokens.GetEnumerator();
-        var hasLine = enumerator.MoveNext();
-        if (!hasLine)
-        {
-            yield break;
-        }
-
-        // first token should always be the interface name.
-        yield return new Pair("InterfaceName", enumerator.Current, []);
-
-        while (Helpers.TryGetValue(enumerator, queue, out var token))
-        {
-            if (groupKeywords.TryGetValue(token, out var groupKeyword))
+            Kind = KeywordKind.NewLine,
+            ChildKeywords = new()
             {
-                if (arrayPairs.Contains(token))
-                {
-                    foreach (var item in HandleArrayKeywords(queue, enumerator, token, groupKeyword))
-                    {
-                        yield return item;
-                    }
-                }
-                else if (mergePairs.Contains(token))
-                {
-                    var children = HandleArrayKeywords(queue, enumerator, token, groupKeyword)
-                       .SelectMany(static o => o.Children.SelectMany(static c => c.Children))
-                       .ToArray();
+                { "id", KeywordKind.Next },
+                { "priority", KeywordKind.Next },
+                { "hellotime", KeywordKind.Next },
+                { "fwddelay", KeywordKind.Next },
+                { "maxage", KeywordKind.Next },
+                { "holdcnt", KeywordKind.Next },
+                { "proto", KeywordKind.Next },
+                { "maxaddr", KeywordKind.Next },
+                { "timeout", KeywordKind.Next },
+                { "ifcost", KeywordKind.Next },
+                { "port", KeywordKind.Next },
+                { "ipfilter", KeywordKind.Next },
+                { "flags", KeywordKind.Next },
+                { "root", KeywordKind.Group },
+            },
+        };
 
-                    // merge properties
-                    yield return new Pair(token, string.Empty, children, ChildType.ObjectType);
-                }
-                else
-                {
-                    foreach (var item in HandleGroups(queue, enumerator, token, groupKeyword))
-                    {
-                        yield return item;
-                    }
-                }
-            }
-            else if (multipleKeywords.ContainsKey(token))
+        keywords["member"] = new KeywordDef
+        {
+            Kind = KeywordKind.GroupNext,
+            IsArray = true,
+            ChildKeywords = new()
             {
-                foreach (var item in HandleMultipleKeywords(queue, enumerator, multipleKeywords, token, token))
-                {
-                    yield return item;
-                }
-            }
-            else if (singleKeywords.TryGetValue(token, out var kind))
+                { "flags", KeywordKind.Options },
+                { "ifmaxaddr", KeywordKind.Next },
+                { "port", KeywordKind.Next },
+                { "priority", KeywordKind.Next },
+                { "hostfilter", KeywordKind.Next },
+                { "hw", KeywordKind.Next },
+                { "ip", KeywordKind.Next },
+            },
+            ChildMultiTokenKeywords = new()
             {
-                foreach (var item in HandleSingleKeyword(queue, enumerator, kind, token))
-                {
-                    yield return item;
-                }
-            }
-        }
+                { "path", new MultiTokenDef { Kind = KeywordKind.Next, Keywords = new() { { "cost", KeywordKind.Next } } } },
+            },
+        };
+
+        keywords["agent"] = new KeywordDef
+        {
+            Kind = KeywordKind.Group,
+            IsArray = true,
+            ChildKeywords = new()
+            {
+                { "domain", KeywordKind.Next },
+                { "type", KeywordKind.Next },
+                { "flags", KeywordKind.Next },
+                { "desc", KeywordKind.NewLine },
+            },
+        };
+
+        keywords["root"] = new KeywordDef
+        {
+            Kind = KeywordKind.Group,
+            ChildKeywords = new()
+            {
+                { "id", KeywordKind.Next },
+                { "priority", KeywordKind.Next },
+                { "ifcost", KeywordKind.Next },
+                { "port", KeywordKind.Next },
+                { "ipfilter", KeywordKind.Next },
+                { "flags", KeywordKind.Options },
+                { "member", KeywordKind.Group },
+            },
+        };
+
+        keywords["inet6"] = new KeywordDef
+        {
+            Kind = KeywordKind.GroupNext,
+            IsArray = true,
+            ChildKeywords = new()
+            {
+                { "prefixlen", KeywordKind.Next },
+                { "scopeid", KeywordKind.Next },
+                { "secured", KeywordKind.Single },
+            },
+            CustomHandler = (token, enumerator, queue) =>
+            {
+                // inet6 needs special GroupNext handling where the value is split on '%'
+                // We still need to collect the group's children, so we do it inline.
+                return HandleInet6Group(token, enumerator, queue);
+            },
+        };
+
+        keywords["inet"] = new KeywordDef
+        {
+            Kind = KeywordKind.GroupNext,
+            IsArray = true,
+            ChildKeywords = new()
+            {
+                { "netmask", KeywordKind.Next },
+                { "broadcast", KeywordKind.Next },
+            },
+        };
+
+        keywords["RX"] = new KeywordDef
+        {
+            Kind = KeywordKind.Group,
+            MergeChildren = true,
+            ChildKeywords = new()
+            {
+                { "packets", KeywordKind.Next },
+                { "errors", KeywordKind.Next },
+                { "dropped", KeywordKind.Next },
+                { "overruns", KeywordKind.Next },
+                { "carrier", KeywordKind.Next },
+                { "frame", KeywordKind.Next },
+                { "collisions", KeywordKind.Next },
+                { "bytes", KeywordKind.NewLine },
+            },
+        };
+
+        keywords["TX"] = new KeywordDef
+        {
+            Kind = KeywordKind.Group,
+            MergeChildren = true,
+            ChildKeywords = new()
+            {
+                { "packets", KeywordKind.Next },
+                { "errors", KeywordKind.Next },
+                { "dropped", KeywordKind.Next },
+                { "overruns", KeywordKind.Next },
+                { "carrier", KeywordKind.Next },
+                { "frame", KeywordKind.Next },
+                { "collisions", KeywordKind.Next },
+                { "bytes", KeywordKind.NewLine },
+            },
+        };
+
+        // Multi-token (compound) keywords
+        AddMultiToken(keywords, "nd6", KeywordKind.Options, new() { { "options", KeywordKind.Options } });
+        AddMultiToken(keywords, "state", KeywordKind.Next, new() { { "availability", KeywordKind.Next } });
+        AddMultiToken(keywords, "qosmarking", KeywordKind.Next, new() { { "enabled", KeywordKind.Next } });
+        AddMultiToken(keywords, "generation", KeywordKind.Next, new() { { "id", KeywordKind.Next } });
+        AddMultiToken(keywords, "uplink", KeywordKind.Next, new() { { "rate", KeywordKind.Next } });
+        AddMultiToken(keywords, "downlink", KeywordKind.Next, new() { { "rate", KeywordKind.Next } });
+        AddMultiToken(keywords, "low", KeywordKind.Next, new() { { "power", KeywordKind.Next }, { "mode", KeywordKind.Next } });
+        AddMultiToken(keywords, "link", KeywordKind.Next, new() { { "rate", KeywordKind.Next }, { "quality", KeywordKind.Next } });
+        AddMultiToken(keywords, "multi", KeywordKind.Next, new() { { "layer", KeywordKind.Next }, { "packet", KeywordKind.Next }, { "logging", KeywordKind.Next }, { "(mpklog)", KeywordKind.Drop } });
+
+        return keywords;
     }
 
-    private static IEnumerable<Pair> HandleGroups(
-        Queue<string> queue,
-        IEnumerator<string> enumerator,
-        string token,
-        GroupDefinition groupDefinition
-    )
+    private static void AddSingle(Dictionary<string, KeywordDef> dict, string key, KeywordKind kind)
     {
-        var key = token;
-        var pairChildren = new List<Pair>();
-        var value = string.Empty;
-
-        if (groupDefinition.Kind == KeywordKind.GroupNext)
-        {
-            pairChildren.AddRange(
-                HandleSingleKeyword(queue, enumerator, KeywordKind.Next, token)
-            );
-        }
-
-        while (Helpers.TryGetValue(enumerator, queue, out var nextToken))
-        {
-            if (groupDefinition.Keywords.TryGetValue(nextToken, out var kind))
-            {
-                if (groupKeywords.TryGetValue(nextToken, out var childGroup))
-                {
-                    if (arrayPairs.Contains(nextToken))
-                    {
-                        pairChildren.AddRange(HandleArrayKeywords(queue, enumerator, nextToken, childGroup));
-                    }
-                    else
-                    {
-                        pairChildren.AddRange(HandleGroups(queue, enumerator, nextToken, childGroup));
-                    }
-                }
-                else
-                {
-                    pairChildren.AddRange(
-                        HandleSingleKeyword(queue, enumerator, kind, nextToken)
-                    );
-                }
-            }
-            else if (groupDefinition.MultipleKeywords.ContainsKey(nextToken))
-            {
-                pairChildren.AddRange(
-                    HandleMultipleKeywords(queue, enumerator, groupDefinition.MultipleKeywords, nextToken, nextToken)
-                );
-            }
-            else if (nextToken == Helpers.NewLine)
-            {
-                continue;
-            }
-            else
-            {
-                queue.Enqueue(nextToken); // put it back on the stack.
-                break;
-            }
-        }
-
-        yield return new Pair(key, value, pairChildren, ChildType.ObjectType);
+        dict[key] = new KeywordDef { Kind = kind };
     }
 
-    private static IEnumerable<Pair> HandleArrayKeywords(
-        Queue<string> queue,
-        IEnumerator<string> enumerator,
-        string token,
-        GroupDefinition groupDefinition
-    )
+    private static void AddMultiToken(Dictionary<string, KeywordDef> dict, string key, KeywordKind kind, Dictionary<string, KeywordKind> following)
     {
+        dict[key] = new KeywordDef
+        {
+            Kind = kind,
+            MultiToken = new MultiTokenDef { Kind = kind, Keywords = following },
+        };
+    }
+
+    /// <summary>
+    /// Custom handler for inet6 groups that splits "addr%interface" on '%'
+    /// and then collects the group's remaining child keywords.
+    /// </summary>
+    private static IEnumerable<Pair> HandleInet6Group(string token, IEnumerator<string> enumerator, Queue<string> queue)
+    {
+        // This is an array keyword — collect all occurrences
         var key = $"{token}s";
         var pairChildren = new List<Pair>();
-        var value = string.Empty;
 
-        pairChildren.AddRange(HandleGroups(queue, enumerator, token, groupDefinition));
+        pairChildren.Add(CollectOneInet6(token, enumerator, queue));
 
         while (Helpers.TryGetValue(enumerator, queue, out var nextToken))
         {
             if (nextToken == token)
             {
-                pairChildren.AddRange(HandleGroups(queue, enumerator, token, groupDefinition));
+                pairChildren.Add(CollectOneInet6(token, enumerator, queue));
             }
             else
             {
-                queue.Enqueue(nextToken); // put it back on the stack.
+                queue.Enqueue(nextToken);
                 break;
             }
         }
 
-        yield return new Pair(key, value, pairChildren, ChildType.ArrayType);
+        yield return new Pair(key, string.Empty, pairChildren, ChildType.ArrayType);
     }
 
-    private static IEnumerable<Pair> HandleMultipleKeywords(
-        Queue<string> queue,
-        IEnumerator<string> enumerator,
-        Dictionary<string, MultipleDefinition> definition,
-        string token,
-        string key
-    )
+    private static readonly Dictionary<string, KeywordKind> Inet6ChildKeywords = new()
     {
-        var escape = false;
-        foreach (var item in definition[token].Keywords)
-        {
-            if (!Helpers.TryGetValue(enumerator, queue, out var nextItem))
-            {
-                yield break;
-            }
+        { "prefixlen", KeywordKind.Next },
+        { "scopeid", KeywordKind.Next },
+        { "secured", KeywordKind.Single },
+    };
 
-            if (!definition[token].Keywords.ContainsKey(nextItem))
-            {
-                queue.Enqueue(nextItem);
-                escape = true;
-                break;
-            }
-
-            if (item.Value != KeywordKind.Drop)
-            {
-                key += $" {nextItem}";
-            }
-        }
-
-        if (escape)
-        {
-            yield break;
-        }
-
-        foreach (var pair in HandleSingleKeyword(queue, enumerator, definition[token].Kind, key))
-        {
-            yield return pair;
-        }
-    }
-
-    private static IEnumerable<Pair> HandleSingleKeyword(
-        Queue<string> queue,
-        IEnumerator<string> enumerator,
-        KeywordKind kind,
-        string token
-    )
+    private static Pair CollectOneInet6(string token, IEnumerator<string> enumerator, Queue<string> queue)
     {
-        // Special inet6 handling: split interface from address
-        if (kind == KeywordKind.Next && token == "inet6")
-        {
-            if (Helpers.TryGetValue(enumerator, queue, out var value))
-            {
-                var items = value.Split('%');
-                yield return new Pair(token, items[0], []);
-                if (items.Length > 1)
-                {
-                    yield return new Pair("interface", items[1], []);
-                }
-            }
+        var children = new List<Pair>();
 
-            yield break;
+        // Read the value and split on '%'
+        if (Helpers.TryGetValue(enumerator, queue, out var value))
+        {
+            var items = value.Split('%');
+            children.Add(new Pair(token, items[0], []));
+            if (items.Length > 1)
+            {
+                children.Add(new Pair("interface", items[1], []));
+            }
         }
 
-        foreach (var pair in Helpers.HandleSingleKeyword(queue, enumerator, kind, token, '<', '>'))
+        // Read remaining child keywords
+        while (Helpers.TryGetValue(enumerator, queue, out var nextToken))
         {
-            yield return pair;
-        }
-    }
-
-    private static IEnumerable<string> Tokenize(TextReader output)
-    {
-        int? c;
-        var sb = new StringBuilder();
-        while ((c = output.Read()) != -1)
-        {
-            if (c == '=')
-            {
-                if (sb[^1] == ':')
-                {
-                    sb.Remove(sb.Length - 1, 1);
-                }
-
-                yield return sb.ToString();
-                sb.Clear();
-                continue;
-            }
-            else if (c == '\n')
-            {
-                if (sb.Length > 0)
-                {
-                    yield return sb.ToString();
-                    sb.Clear();
-                }
-
-                yield return Helpers.NewLine;
-                continue;
-            }
-            else if (!char.IsWhiteSpace((char)c))
-            {
-                sb.Append((char)c);
-                continue;
-            }
-
-            if (sb.Length == 0)
+            if (nextToken == Helpers.NewLine)
             {
                 continue;
             }
 
-            if (sb[^1] == ':')
+            if (Inet6ChildKeywords.TryGetValue(nextToken, out var childKind))
             {
-                sb.Remove(sb.Length - 1, 1);
-            }
-
-            // sometimes the key:value pairs are separated
-            //  by a single colon.  split these.
-            var colonCount = Helpers.CountChars(sb, ':');
-            if (colonCount[':'] == 1)
-            {
-                var tokens = sb.ToString().Split(':');
-                yield return tokens[0];
-                yield return tokens[1];
+                children.AddRange(Helpers.HandleSingleKeyword(queue, enumerator, childKind, nextToken, '<', '>'));
             }
             else
             {
-                yield return sb.ToString();
+                queue.Enqueue(nextToken);
+                break;
             }
-
-            sb.Clear();
         }
+
+        return new Pair(token, string.Empty, children, ChildType.ObjectType);
     }
 
     #endregion

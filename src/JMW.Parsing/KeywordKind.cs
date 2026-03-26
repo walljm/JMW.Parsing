@@ -1,6 +1,6 @@
 namespace JMW.Parsing;
 
-internal enum KeywordKind
+public enum KeywordKind
 {
     NewLine,
     Next,

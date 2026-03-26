@@ -7,7 +7,7 @@ public enum OutputType
     KeyValue,
 }
 
-internal enum ChildType
+public enum ChildType
 {
     StringType,
     ArrayType,
