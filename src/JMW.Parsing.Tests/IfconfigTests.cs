@@ -2819,4 +2819,147 @@ ztrfyb5gbi: flags=4163<UP,BROADCAST,RUNNING,MULTICAST>  mtu 2800
         testOutputHelper.WriteLine(actualOutput);
         Assert.Equal(expectedJson.Replace("\r\n", "\n"), actualOutput.Replace("\r\n", "\n"));
     }
+
+    [Fact]
+    public void ParseKeyValuesMacOsTest()
+    {
+        const string ifconfigOutput = @"
+lo0: flags=8049<UP,LOOPBACK,RUNNING,MULTICAST> mtu 16384
+	options=1203<RXCSUM,TXCSUM,TXSTATUS,SW_TIMESTAMP>
+	inet 127.0.0.1 netmask 0xff000000
+	inet6 ::1 prefixlen 128
+	nd6 options=201<PERFORMNUD,DAD>
+en0: flags=8863<UP,BROADCAST,SMART,RUNNING,SIMPLEX,MULTICAST> mtu 1500
+	ether 60:3e:5f:88:0c:1a
+	inet 192.168.1.237 netmask 0xffffff00 broadcast 192.168.1.255
+	media: autoselect
+	status: active
+";
+
+        using var reader = new StringReader(ifconfigOutput);
+        using var writer = new StringWriter();
+        Ifconfig.Parse(reader, writer, new DisplayOptions(OutputType.KeyValue));
+
+        var actualOutput = writer.ToString();
+        testOutputHelper.WriteLine(actualOutput);
+
+        Assert.Contains("InterfaceName: lo0", actualOutput);
+        Assert.Contains("InterfaceName: en0", actualOutput);
+        Assert.Contains("Mtu: 16384", actualOutput);
+        Assert.Contains("Inet: 127.0.0.1", actualOutput);
+        Assert.Contains("Inet: 192.168.1.237", actualOutput);
+        Assert.Contains("Netmask: 0xff000000", actualOutput);
+        Assert.Contains("Status: active", actualOutput);
+        Assert.Contains("Media: autoselect", actualOutput);
+        Assert.Contains("Ether: 60:3e:5f:88:0c:1a", actualOutput);
+    }
+
+    [Fact]
+    public void ParseTableMacOsTest()
+    {
+        const string ifconfigOutput = @"
+lo0: flags=8049<UP,LOOPBACK,RUNNING,MULTICAST> mtu 16384
+	options=1203<RXCSUM,TXCSUM,TXSTATUS,SW_TIMESTAMP>
+	inet 127.0.0.1 netmask 0xff000000
+	nd6 options=201<PERFORMNUD,DAD>
+en0: flags=8863<UP,BROADCAST,SMART,RUNNING,SIMPLEX,MULTICAST> mtu 1500
+	ether 60:3e:5f:88:0c:1a
+	inet 192.168.1.237 netmask 0xffffff00 broadcast 192.168.1.255
+	media: autoselect
+	status: active
+gif0: flags=8010<POINTOPOINT,MULTICAST> mtu 1280
+stf0: flags=0<> mtu 1280
+";
+
+        using var reader = new StringReader(ifconfigOutput);
+        using var writer = new StringWriter();
+        Ifconfig.Parse(reader, writer, new DisplayOptions(OutputType.Table, ConsoleWidth: 250));
+
+        var actualOutput = writer.ToString();
+        testOutputHelper.WriteLine(actualOutput);
+
+        Assert.Contains("lo0", actualOutput);
+        Assert.Contains("en0", actualOutput);
+        Assert.Contains("gif0", actualOutput);
+        Assert.Contains("stf0", actualOutput);
+        Assert.Contains("active", actualOutput);
+        Assert.Contains("Loopback", actualOutput);
+        Assert.Contains("Tunnel", actualOutput);
+        Assert.Contains("6to4 Tunnel", actualOutput);
+        Assert.Contains("192.168.1.237/24", actualOutput);
+        Assert.Contains("60:3e:5f:88:0c:1a", actualOutput);
+    }
+
+    [Fact]
+    public void ParseTableWithFilterTest()
+    {
+        const string ifconfigOutput = @"
+lo0: flags=8049<UP,LOOPBACK,RUNNING,MULTICAST> mtu 16384
+	inet 127.0.0.1 netmask 0xff000000
+en0: flags=8863<UP,BROADCAST,SMART,RUNNING,SIMPLEX,MULTICAST> mtu 1500
+	ether 60:3e:5f:88:0c:1a
+	inet 192.168.1.237 netmask 0xffffff00 broadcast 192.168.1.255
+	status: active
+gif0: flags=8010<POINTOPOINT,MULTICAST> mtu 1280
+";
+
+        using var reader = new StringReader(ifconfigOutput);
+        using var writer = new StringWriter();
+        Ifconfig.Parse(reader, writer, new DisplayOptions(OutputType.Table, ConsoleWidth: 250, Filter: "en0"));
+
+        var actualOutput = writer.ToString();
+        testOutputHelper.WriteLine(actualOutput);
+
+        Assert.Contains("en0", actualOutput);
+        Assert.DoesNotContain("lo0", actualOutput);
+        Assert.DoesNotContain("gif0", actualOutput);
+    }
+
+    [Fact]
+    public void ParseTableWithInvalidFilterTest()
+    {
+        const string ifconfigOutput = @"
+lo0: flags=8049<UP,LOOPBACK,RUNNING,MULTICAST> mtu 16384
+";
+
+        using var reader = new StringReader(ifconfigOutput);
+        using var writer = new StringWriter();
+        var errorWriter = new StringWriter();
+        var originalError = Console.Error;
+        Console.SetError(errorWriter);
+        try
+        {
+            Ifconfig.Parse(reader, writer, new DisplayOptions(OutputType.Table, ConsoleWidth: 250, Filter: "[invalid"));
+
+            Assert.Empty(writer.ToString());
+            Assert.Contains("Invalid filter regex", errorWriter.ToString());
+        }
+        finally
+        {
+            Console.SetError(originalError);
+        }
+    }
+
+    [Fact]
+    public void ParseTableNarrowWidthTest()
+    {
+        const string ifconfigOutput = @"
+en0: flags=8863<UP,BROADCAST,SMART,RUNNING,SIMPLEX,MULTICAST> mtu 1500
+	ether 60:3e:5f:88:0c:1a
+	inet 192.168.1.237 netmask 0xffffff00 broadcast 192.168.1.255
+	media: autoselect
+	status: active
+";
+
+        using var reader = new StringReader(ifconfigOutput);
+        using var writer = new StringWriter();
+        Ifconfig.Parse(reader, writer, new DisplayOptions(OutputType.Table, ConsoleWidth: 80));
+
+        var actualOutput = writer.ToString();
+        testOutputHelper.WriteLine(actualOutput);
+
+        Assert.Contains("en0", actualOutput);
+        // At 80 width, Index, AdminStatus, Flags, and Media columns should be removed
+        Assert.DoesNotContain("Media", actualOutput);
+    }
 }

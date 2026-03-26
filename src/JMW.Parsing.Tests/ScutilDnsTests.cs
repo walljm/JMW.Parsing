@@ -247,4 +247,58 @@ resolver #2
         testOutputHelper.WriteLine(actualOutput);
         Assert.Equal(expectedJson.Replace("\r\n", "\n"), actualOutput.Replace("\r\n", "\n"));
     }
+
+    [Fact]
+    public void ParseKeyValuesMacOsTest()
+    {
+        const string scutilOutput = @"
+DNS configuration
+
+resolver #1
+  search domain[0] : home
+  nameserver[0] : 192.168.1.54
+  nameserver[1] : 192.168.1.52
+  if_index : 24 (en7)
+  flags    : Request A records
+  reach    : 0x00020002 (Reachable,Directly Reachable Address)
+
+resolver #2
+  domain   : local
+  options  : mdns
+  timeout  : 5
+  flags    : Request A records
+  reach    : 0x00000000 (Not Reachable)
+  order    : 300000
+
+DNS configuration (for scoped queries)
+
+resolver #1
+  search domain[0] : home
+  nameserver[0] : 192.168.1.54
+  if_index : 15 (en0)
+  flags    : Scoped, Request A records
+  reach    : 0x00020002 (Reachable,Directly Reachable Address)
+";
+
+        using var reader = new StringReader(scutilOutput);
+        using var writer = new StringWriter();
+        ScutilDns.Parse(reader, writer, new DisplayOptions(OutputType.KeyValue));
+
+        var actualOutput = writer.ToString();
+        testOutputHelper.WriteLine(actualOutput);
+
+        // Verify DNS configuration type is included
+        Assert.Contains("Type: DNS configuration\n", actualOutput);
+        // Verify resolver identifiers
+        Assert.Contains("Resolver: 1", actualOutput);
+        Assert.Contains("Resolver: 2", actualOutput);
+        // Verify key values from resolver #1 (array keys get index appended, CleanKey strips brackets)
+        Assert.Contains("SearchDomain0: home", actualOutput);
+        Assert.Contains("Nameserver0: 192.168.1.54", actualOutput);
+        Assert.Contains("Nameserver1: 192.168.1.52", actualOutput);
+        Assert.Contains("Ifindex: 24 (en7)", actualOutput);
+        Assert.Contains("Flags: Request A records", actualOutput);
+        // Verify scoped queries section
+        Assert.Contains("Type: DNS configuration (for scoped queries)", actualOutput);
+    }
 }
