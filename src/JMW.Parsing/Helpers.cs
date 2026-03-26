@@ -78,7 +78,7 @@ public static class Helpers
                 new Pair("Values", string.Empty, optionList, ChildType.ArrayType),
             };
 
-            yield return new Pair(token, string.Empty, [.. pairChildren], ChildType.ObjectType);
+            yield return new Pair(token, string.Empty, pairChildren, ChildType.ObjectType);
         }
         else
         {

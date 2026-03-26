@@ -324,4 +324,25 @@ resolver #1
 
         Assert.Equal("", writer.ToString());
     }
+
+    [Fact]
+    public void ParseTableOutputNotSupportedTest()
+    {
+        using var reader = new StringReader("resolver #1\n  nameserver[0] : 192.168.1.54\n");
+        using var writer = new StringWriter();
+        var errorWriter = new StringWriter();
+        var originalError = Console.Error;
+        Console.SetError(errorWriter);
+        try
+        {
+            ScutilDns.Parse(reader, writer, new DisplayOptions(OutputType.Table));
+
+            Assert.Empty(writer.ToString());
+            Assert.Contains("Table output is not supported", errorWriter.ToString());
+        }
+        finally
+        {
+            Console.SetError(originalError);
+        }
+    }
 }

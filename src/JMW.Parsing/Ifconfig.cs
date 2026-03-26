@@ -1,7 +1,6 @@
-using System.Collections;
+using System.Globalization;
 using System.Net;
 using System.Text;
-using System.Text.Json;
 using System.Text.RegularExpressions;
 using table.lib;
 
@@ -29,33 +28,16 @@ public static class Ifconfig
 
     public static void OutputKeyValues(TextReader inputReader, TextWriter outputWriter)
     {
-        var blocks = Helpers.GetBlocks(inputReader, trimInitialWhitespace: true, trimEndingWhitespace: false);
-
-        foreach (var block in blocks)
-        {
-            outputWriter.WriteLine(); // empty line for a spacer
-
-            using var blockReader = new StringReader(block);
-            var pairs = GetPairs(Tokenize(blockReader));
-
-            foreach (var pair in pairs)
-            {
-                pair.WriteKeyValues(outputWriter);
-            }
-        }
+        PairWriter.WriteKeyValues(GetBlockPairs(inputReader), outputWriter);
     }
 
     public static void OutputTable(TextReader inputReader, TextWriter outputWriter, DisplayOptions displayOptions)
     {
-        var blocks = Helpers.GetBlocks(inputReader, trimInitialWhitespace: true, trimEndingWhitespace: false);
-
         #region Convert blocks to pocos
 
         var data = new List<Ifc>();
-        foreach (var block in blocks)
+        foreach (var pairs in GetBlockPairs(inputReader))
         {
-            using var blockReader = new StringReader(block);
-            var pairs = GetPairs(Tokenize(blockReader)).ToArray();
 
             var ifc = new Ifc();
 
@@ -184,7 +166,19 @@ public static class Ifconfig
         }
 
         data = data.OrderBy(static o => o.Index).ThenBy(static o => o.Name).ToList();
-        var columns = typeof(Ifc).GetProperties().Select(static o => o.Name).ToList();
+        var columns = new List<string>
+        {
+            nameof(Ifc.Name),
+            nameof(Ifc.Status),
+            nameof(Ifc.Flags),
+            nameof(Ifc.AdminStatus),
+            nameof(Ifc.OperStatus),
+            nameof(Ifc.Index),
+            nameof(Ifc.Type),
+            nameof(Ifc.MAC),
+            nameof(Ifc.IP),
+            nameof(Ifc.Media),
+        };
 
         if (displayOptions.ConsoleWidth < 225)
         {
@@ -209,24 +203,49 @@ public static class Ifconfig
         #endregion
 
         var tbl = Table<Ifc>.Add(data);
-        tbl.BackgroundColor = Console.BackgroundColor;
-        tbl.ForegroundColor = Console.ForegroundColor;
         tbl.FilterColumns(columns.ToArray(), FilterAction.Include);
         var result = tbl.ToMarkDown();
         outputWriter.Write(result);
     }
 
-    private static int GetMaskLen(string ip)
+    private static int GetMaskLen(string mask)
     {
-        var cidr = 0;
-        if (IPAddress.TryParse(ip, out var ipAddress))
+        byte[] bytes;
+
+        if (mask.StartsWith("0x", StringComparison.OrdinalIgnoreCase)
+         && uint.TryParse(mask.AsSpan(2), NumberStyles.HexNumber, null, out var hex))
         {
-            var bits = new BitArray(ipAddress.GetAddressBytes());
-            for (var i = 0; i < bits.Length; i++)
+            // macOS hex format: 0xffffff00
+            bytes =
+            [
+                (byte)(hex >> 24),
+                (byte)(hex >> 16),
+                (byte)(hex >> 8),
+                (byte)hex,
+            ];
+        }
+        else if (IPAddress.TryParse(mask, out var ipAddress))
+        {
+            // Linux decimal format: 255.255.255.0
+            bytes = ipAddress.GetAddressBytes();
+        }
+        else
+        {
+            return 0;
+        }
+
+        var cidr = 0;
+        foreach (var b in bytes)
+        {
+            for (var bit = 7; bit >= 0; bit--)
             {
-                if (bits[i])
+                if ((b & (1 << bit)) != 0)
                 {
                     cidr++;
+                }
+                else
+                {
+                    return cidr;
                 }
             }
         }
@@ -250,39 +269,17 @@ public static class Ifconfig
 
     public static void OutputJson(TextReader inputReader, TextWriter outputWriter)
     {
+        PairWriter.WriteJson(GetBlockPairs(inputReader), outputWriter);
+    }
+
+    private static IEnumerable<IReadOnlyList<Pair>> GetBlockPairs(TextReader inputReader)
+    {
         var blocks = Helpers.GetBlocks(inputReader, trimInitialWhitespace: true, trimEndingWhitespace: false);
-        var jsonWriterOptions = new JsonWriterOptions
-        {
-            Indented = true,
-        };
-
-        using var stream = new MemoryStream();
-        using var writer = new Utf8JsonWriter(stream, jsonWriterOptions);
-
-        writer.WriteStartArray();
-
         foreach (var block in blocks)
         {
             using var blockReader = new StringReader(block);
-            var pairs = GetPairs(Tokenize(blockReader)).ToArray();
-            if (pairs.Length == 0)
-            {
-                continue;
-            }
-
-            writer.WriteStartObject();
-            foreach (var pair in pairs)
-            {
-                pair.WriteJson(writer);
-            }
-
-            writer.Flush();
-            writer.WriteEndObject();
+            yield return GetPairs(Tokenize(blockReader)).ToArray();
         }
-
-        writer.WriteEndArray();
-        writer.Flush();
-        outputWriter.WriteLine(Encoding.UTF8.GetString(stream.GetBuffer(), 0, (int)stream.Position));
     }
 
     #endregion
@@ -619,7 +616,7 @@ public static class Ifconfig
             }
         }
 
-        yield return new Pair(key, value, [.. pairChildren], ChildType.ObjectType);
+        yield return new Pair(key, value, pairChildren, ChildType.ObjectType);
     }
 
     private static IEnumerable<Pair> HandleArrayKeywords(
@@ -648,7 +645,7 @@ public static class Ifconfig
             }
         }
 
-        yield return new Pair(key, value, [.. pairChildren], ChildType.ArrayType);
+        yield return new Pair(key, value, pairChildren, ChildType.ArrayType);
     }
 
     private static IEnumerable<Pair> HandleMultipleKeywords(

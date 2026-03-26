@@ -1,5 +1,4 @@
 using System.Text;
-using System.Text.Json;
 
 namespace JMW.Parsing;
 
@@ -17,48 +16,26 @@ public static class ScutilDns
         {
             OutputJson(inputReader, outputWriter);
         }
+        else if (displayOptions.OutputType == OutputType.Table)
+        {
+            Console.Error.WriteLine("Table output is not supported for scutil --dns. Use Json or KeyValue.");
+        }
     }
 
     public static void OutputKeyValues(TextReader inputReader, TextWriter outputWriter)
     {
-        var blocks = Helpers.GetBlocks(inputReader, trimInitialWhitespace: true, trimEndingWhitespace: false);
-
-        var header = string.Empty;
-        foreach (var block in blocks)
-        {
-            if (block.StartsWith("DNS"))
-            {
-                header = block.Trim();
-                continue;
-            }
-
-            outputWriter.WriteLine(); // empty line for a spacer
-
-            using var blockReader = new StringReader(block);
-            var pairs = GetPairs(Tokenize(blockReader), header);
-
-            foreach (var pair in pairs)
-            {
-                pair.WriteKeyValues(outputWriter);
-            }
-        }
+        PairWriter.WriteKeyValues(GetBlockPairs(inputReader), outputWriter);
     }
 
     public static void OutputJson(TextReader inputReader, TextWriter outputWriter)
     {
+        PairWriter.WriteJson(GetBlockPairs(inputReader), outputWriter);
+    }
+
+    private static IEnumerable<IReadOnlyList<Pair>> GetBlockPairs(TextReader inputReader)
+    {
         var blocks = Helpers.GetBlocks(inputReader, trimInitialWhitespace: true, trimEndingWhitespace: false);
-        var jsonWriterOptions = new JsonWriterOptions
-        {
-            Indented = true,
-        };
-
-        using var stream = new MemoryStream();
-        using var writer = new Utf8JsonWriter(stream, jsonWriterOptions);
-
-        writer.WriteStartArray();
-
         var header = string.Empty;
-
         foreach (var block in blocks)
         {
             if (block.StartsWith("DNS"))
@@ -68,25 +45,8 @@ public static class ScutilDns
             }
 
             using var blockReader = new StringReader(block);
-            var pairs = GetPairs(Tokenize(blockReader), header).ToArray();
-            if (pairs.Length == 0)
-            {
-                continue;
-            }
-
-            writer.WriteStartObject();
-            foreach (var pair in pairs)
-            {
-                pair.WriteJson(writer);
-            }
-
-            writer.Flush();
-            writer.WriteEndObject();
+            yield return GetPairs(Tokenize(blockReader), header).ToArray();
         }
-
-        writer.WriteEndArray();
-        writer.Flush();
-        outputWriter.WriteLine(Encoding.UTF8.GetString(stream.GetBuffer(), 0, (int)stream.Position));
     }
 
     #endregion
@@ -228,7 +188,7 @@ public static class ScutilDns
             }
         }
 
-        yield return new Pair(key, string.Empty, [.. pairChildren], ChildType.ArrayType);
+        yield return new Pair(key, string.Empty, pairChildren, ChildType.ArrayType);
     }
 
     private static string HandleMultipleKeywords(

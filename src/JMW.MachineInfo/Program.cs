@@ -34,9 +34,11 @@ public class Program
             process.StartInfo.RedirectStandardOutput = true;
             process.Start();
 
-            // Synchronously read the standard output of the spawned process.
-            Ifconfig.Parse(process.StandardOutput, Console.Out, parsingOpts);
+            var output = process.StandardOutput.ReadToEnd();
             process.WaitForExit();
+
+            using var reader = new StringReader(output);
+            Ifconfig.Parse(reader, Console.Out, parsingOpts);
         }
         else if (options.UseScutilDns)
         {
@@ -53,9 +55,11 @@ public class Program
             process.StartInfo.RedirectStandardOutput = true;
             process.Start();
 
-            // Synchronously read the standard output of the spawned process.
-            ScutilDns.Parse(process.StandardOutput, Console.Out, parsingOpts);
+            var output = process.StandardOutput.ReadToEnd();
             process.WaitForExit();
+
+            using var reader = new StringReader(output);
+            ScutilDns.Parse(reader, Console.Out, parsingOpts);
         }
         else
         {
