@@ -301,4 +301,27 @@ resolver #1
         // Verify scoped queries section
         Assert.Contains("Type: DNS configuration (for scoped queries)", actualOutput);
     }
+
+    [Fact]
+    public void ParseJsonEmptyInputTest()
+    {
+        using var reader = new StringReader("");
+        using var writer = new StringWriter();
+        ScutilDns.Parse(reader, writer, new DisplayOptions(OutputType.Json));
+
+        var actualOutput = writer.ToString();
+        testOutputHelper.WriteLine(actualOutput);
+
+        Assert.Equal("[]\n", actualOutput.Replace("\r\n", "\n"));
+    }
+
+    [Fact]
+    public void ParseKeyValuesEmptyInputTest()
+    {
+        using var reader = new StringReader("");
+        using var writer = new StringWriter();
+        ScutilDns.Parse(reader, writer, new DisplayOptions(OutputType.KeyValue));
+
+        Assert.Equal("", writer.ToString());
+    }
 }

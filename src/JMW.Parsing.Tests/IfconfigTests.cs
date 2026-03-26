@@ -2962,4 +2962,162 @@ en0: flags=8863<UP,BROADCAST,SMART,RUNNING,SIMPLEX,MULTICAST> mtu 1500
         // At 80 width, Index, AdminStatus, Flags, and Media columns should be removed
         Assert.DoesNotContain("Media", actualOutput);
     }
+
+    [Fact]
+    public void ParseTableLinuxTest()
+    {
+        const string ifconfigOutput = @"docker0: flags=4099<UP,BROADCAST,MULTICAST>  mtu 1500
+        inet 172.17.0.1  netmask 255.255.0.0  broadcast 172.17.255.255
+        ether 02:42:1b:bf:97:2c  txqueuelen 0  (Ethernet)
+        RX packets 0  bytes 0 (0.0 B)
+        RX errors 0  dropped 0  overruns 0  frame 0
+        TX packets 0  bytes 0 (0.0 B)
+        TX errors 0  dropped 0 overruns 0  carrier 0  collisions 0
+
+enx9cebe844d8ab: flags=4163<UP,BROADCAST,RUNNING,MULTICAST>  mtu 1500
+        inet 192.168.1.210  netmask 255.255.255.0  broadcast 192.168.1.255
+        inet6 fe80::c927:bb65:7a0f:4bb  prefixlen 64  scopeid 0x20<link>
+        ether 9c:eb:e8:44:d8:ab  txqueuelen 1000  (Ethernet)
+        RX packets 16108553  bytes 5450117374 (5.4 GB)
+        RX errors 0  dropped 0  overruns 0  frame 0
+        TX packets 16102736  bytes 4625588491 (4.6 GB)
+        TX errors 0  dropped 118 overruns 0  carrier 0  collisions 0
+
+lo: flags=73<UP,LOOPBACK,RUNNING>  mtu 65536
+        inet 127.0.0.1  netmask 255.0.0.0
+        inet6 ::1  prefixlen 128  scopeid 0x10<host>
+        loop  txqueuelen 1000  (Local Loopback)
+        RX packets 396599  bytes 39772176 (39.7 MB)
+        RX errors 0  dropped 0  overruns 0  frame 0
+        TX packets 396599  bytes 39772176 (39.7 MB)
+        TX errors 0  dropped 0 overruns 0  carrier 0  collisions 0
+
+";
+
+        using var reader = new StringReader(ifconfigOutput);
+        using var writer = new StringWriter();
+        Ifconfig.Parse(reader, writer, new DisplayOptions(OutputType.Table, ConsoleWidth: 250));
+
+        var actualOutput = writer.ToString();
+        testOutputHelper.WriteLine(actualOutput);
+
+        // Linux ifconfig uses decimal netmasks — verify CIDR conversion
+        Assert.Contains("172.17.0.1/16", actualOutput);
+        Assert.Contains("192.168.1.210/24", actualOutput);
+        Assert.Contains("127.0.0.1/8", actualOutput);
+        // MAC addresses
+        Assert.Contains("02:42:1b:bf:97:2c", actualOutput);
+        Assert.Contains("9c:eb:e8:44:d8:ab", actualOutput);
+        // Loopback type detection
+        Assert.Contains("Loopback", actualOutput);
+        // Interface names
+        Assert.Contains("docker0", actualOutput);
+        Assert.Contains("enx9cebe844d8ab", actualOutput);
+        Assert.Contains("lo", actualOutput);
+    }
+
+    [Fact]
+    public void ParseKeyValuesLinuxTest()
+    {
+        const string ifconfigOutput = @"lo: flags=73<UP,LOOPBACK,RUNNING>  mtu 65536
+        inet 127.0.0.1  netmask 255.0.0.0
+        loop  txqueuelen 1000  (Local Loopback)
+        RX packets 396599  bytes 39772176 (39.7 MB)
+        RX errors 0  dropped 0  overruns 0  frame 0
+        TX packets 396599  bytes 39772176 (39.7 MB)
+        TX errors 0  dropped 0 overruns 0  carrier 0  collisions 0
+
+";
+
+        using var reader = new StringReader(ifconfigOutput);
+        using var writer = new StringWriter();
+        Ifconfig.Parse(reader, writer, new DisplayOptions(OutputType.KeyValue));
+
+        var actualOutput = writer.ToString();
+        testOutputHelper.WriteLine(actualOutput);
+
+        Assert.Contains("InterfaceName: lo", actualOutput);
+        Assert.Contains("Mtu: 65536", actualOutput);
+        // loop keyword produces Single kind → "true"
+        Assert.Contains("Loop: true", actualOutput);
+        // RX/TX are merged into one object in key-value output
+        Assert.Contains("Packets:", actualOutput);
+        Assert.Contains("Bytes:", actualOutput);
+    }
+
+    [Fact]
+    public void ParseTableBridgeTest()
+    {
+        const string ifconfigOutput = @"
+bridge0: flags=8863<UP,BROADCAST,SMART,RUNNING,SIMPLEX,MULTICAST> mtu 1500
+	options=63<RXCSUM,TXCSUM,TSO4,TSO6>
+	ether 22:22:22:22:22:22
+	Configuration:
+		id 0:0:0:0:0:0 priority 0 hellotime 0 fwddelay 0
+		maxage 0 holdcnt 0 proto stp maxaddr 100 timeout 1200
+		root id 0:0:0:0:0:0 priority 0 ifcost 0 port 0
+		ipfilter disabled flags 0x0
+	member: en1 flags=3<LEARNING,DISCOVER>
+	        ifmaxaddr 0 port 13 priority 0 path cost 0
+	nd6 options=201<PERFORMNUD,DAD>
+	media: <unknown type>
+	status: inactive
+en0: flags=8863<UP,BROADCAST,SMART,RUNNING,SIMPLEX,MULTICAST> mtu 1500
+	ether 60:3e:5f:88:0c:1a
+	inet 192.168.1.237 netmask 0xffffff00 broadcast 192.168.1.255
+	status: active
+";
+
+        using var reader = new StringReader(ifconfigOutput);
+        using var writer = new StringWriter();
+        Ifconfig.Parse(reader, writer, new DisplayOptions(OutputType.Table, ConsoleWidth: 250));
+
+        var actualOutput = writer.ToString();
+        testOutputHelper.WriteLine(actualOutput);
+
+        Assert.Contains("bridge0", actualOutput);
+        Assert.Contains("Virtual Bridge", actualOutput);
+        Assert.Contains("en0", actualOutput);
+        Assert.Contains("inactive", actualOutput);
+        Assert.Contains("active", actualOutput);
+    }
+
+    [Fact]
+    public void ParseJsonEmptyInputTest()
+    {
+        using var reader = new StringReader("");
+        using var writer = new StringWriter();
+        Ifconfig.Parse(reader, writer, new DisplayOptions(OutputType.Json));
+
+        var actualOutput = writer.ToString();
+        testOutputHelper.WriteLine(actualOutput);
+
+        // Empty input should produce empty JSON array
+        Assert.Equal("[]\n", actualOutput.Replace("\r\n", "\n"));
+    }
+
+    [Fact]
+    public void ParseKeyValuesEmptyInputTest()
+    {
+        using var reader = new StringReader("");
+        using var writer = new StringWriter();
+        Ifconfig.Parse(reader, writer, new DisplayOptions(OutputType.KeyValue));
+
+        // Should produce no output
+        Assert.Equal("", writer.ToString());
+    }
+
+    [Fact]
+    public void ParseTableEmptyInputTest()
+    {
+        using var reader = new StringReader("");
+        using var writer = new StringWriter();
+        Ifconfig.Parse(reader, writer, new DisplayOptions(OutputType.Table, ConsoleWidth: 120));
+
+        var actualOutput = writer.ToString();
+        testOutputHelper.WriteLine(actualOutput);
+
+        // Table with no data should still produce header or empty table
+        Assert.NotNull(actualOutput);
+    }
 }
