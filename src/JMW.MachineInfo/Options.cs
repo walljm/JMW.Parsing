@@ -1,5 +1,5 @@
 using CommandLine;
-using JMW.Parsing;
+using JMW.MachineInfo;
 
 public class Options
 {

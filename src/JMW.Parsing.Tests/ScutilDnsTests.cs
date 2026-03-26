@@ -99,7 +99,7 @@ resolver #2
     ""Ifindex"": ""24 (en7)"",
     ""Flags"": ""Request A records"",
     ""Reach"": {
-      ""Bits"": "" 0x00020002 "",
+      ""Bits"": ""0x00020002 "",
       ""Values"": [
         ""Reachable"",
         ""Directly Reachable Address""
@@ -114,7 +114,7 @@ resolver #2
     ""Timeout"": ""5"",
     ""Flags"": ""Request A records"",
     ""Reach"": {
-      ""Bits"": "" 0x00000000 "",
+      ""Bits"": ""0x00000000 "",
       ""Values"": [
         ""Not Reachable""
       ]
@@ -129,7 +129,7 @@ resolver #2
     ""Timeout"": ""5"",
     ""Flags"": ""Request A records"",
     ""Reach"": {
-      ""Bits"": "" 0x00000000 "",
+      ""Bits"": ""0x00000000 "",
       ""Values"": [
         ""Not Reachable""
       ]
@@ -144,7 +144,7 @@ resolver #2
     ""Timeout"": ""5"",
     ""Flags"": ""Request A records"",
     ""Reach"": {
-      ""Bits"": "" 0x00000000 "",
+      ""Bits"": ""0x00000000 "",
       ""Values"": [
         ""Not Reachable""
       ]
@@ -159,7 +159,7 @@ resolver #2
     ""Timeout"": ""5"",
     ""Flags"": ""Request A records"",
     ""Reach"": {
-      ""Bits"": "" 0x00000000 "",
+      ""Bits"": ""0x00000000 "",
       ""Values"": [
         ""Not Reachable""
       ]
@@ -174,7 +174,7 @@ resolver #2
     ""Timeout"": ""5"",
     ""Flags"": ""Request A records"",
     ""Reach"": {
-      ""Bits"": "" 0x00000000 "",
+      ""Bits"": ""0x00000000 "",
       ""Values"": [
         ""Not Reachable""
       ]
@@ -189,7 +189,7 @@ resolver #2
     ""Timeout"": ""5"",
     ""Flags"": ""Request A records"",
     ""Reach"": {
-      ""Bits"": "" 0x00000000 "",
+      ""Bits"": ""0x00000000 "",
       ""Values"": [
         ""Not Reachable""
       ]
@@ -209,7 +209,7 @@ resolver #2
     ""Ifindex"": ""24 (en7)"",
     ""Flags"": ""Scoped, Request A records"",
     ""Reach"": {
-      ""Bits"": "" 0x00020002 "",
+      ""Bits"": ""0x00020002 "",
       ""Values"": [
         ""Reachable"",
         ""Directly Reachable Address""
@@ -229,7 +229,7 @@ resolver #2
     ""Ifindex"": ""15 (en0)"",
     ""Flags"": ""Scoped, Request A records"",
     ""Reach"": {
-      ""Bits"": "" 0x00020002 "",
+      ""Bits"": ""0x00020002 "",
       ""Values"": [
         ""Reachable"",
         ""Directly Reachable Address""
@@ -241,7 +241,7 @@ resolver #2
 
         using var reader = new StringReader(ifconfigOutput);
         using var writer = new StringWriter();
-        ScutilDns.Parse(reader, writer, new DisplayOptions(OutputType.Json));
+        ScutilDns.OutputJson(reader, writer);
 
         var actualOutput = writer.ToString();
         testOutputHelper.WriteLine(actualOutput);
@@ -282,7 +282,7 @@ resolver #1
 
         using var reader = new StringReader(scutilOutput);
         using var writer = new StringWriter();
-        ScutilDns.Parse(reader, writer, new DisplayOptions(OutputType.KeyValue));
+        ScutilDns.OutputKeyValues(reader, writer);
 
         var actualOutput = writer.ToString();
         testOutputHelper.WriteLine(actualOutput);
@@ -307,7 +307,7 @@ resolver #1
     {
         using var reader = new StringReader("");
         using var writer = new StringWriter();
-        ScutilDns.Parse(reader, writer, new DisplayOptions(OutputType.Json));
+        ScutilDns.OutputJson(reader, writer);
 
         var actualOutput = writer.ToString();
         testOutputHelper.WriteLine(actualOutput);
@@ -320,29 +320,9 @@ resolver #1
     {
         using var reader = new StringReader("");
         using var writer = new StringWriter();
-        ScutilDns.Parse(reader, writer, new DisplayOptions(OutputType.KeyValue));
+        ScutilDns.OutputKeyValues(reader, writer);
 
         Assert.Equal("", writer.ToString());
     }
 
-    [Fact]
-    public void ParseTableOutputNotSupportedTest()
-    {
-        using var reader = new StringReader("resolver #1\n  nameserver[0] : 192.168.1.54\n");
-        using var writer = new StringWriter();
-        var errorWriter = new StringWriter();
-        var originalError = Console.Error;
-        Console.SetError(errorWriter);
-        try
-        {
-            ScutilDns.Parse(reader, writer, new DisplayOptions(OutputType.Table));
-
-            Assert.Empty(writer.ToString());
-            Assert.Contains("Table output is not supported", errorWriter.ToString());
-        }
-        finally
-        {
-            Console.SetError(originalError);
-        }
-    }
 }

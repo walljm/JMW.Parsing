@@ -15,18 +15,6 @@ public sealed class ParserConfig
     public required Dictionary<string, KeywordDef> Keywords { get; init; }
 
     /// <summary>
-    /// Open/close characters for Options-style keyword values.
-    /// E.g. ('<', '>') for ifconfig flags, ('(', ')') for scutil reach.
-    /// </summary>
-    public (char Open, char Close) OptionDelimiters { get; init; } = ('<', '>');
-
-    /// <summary>
-    /// When true, Options-kind keywords read until newline instead of reading a single next token.
-    /// ScutilDns needs this; ifconfig does not.
-    /// </summary>
-    public bool OptionsReadUntilNewLine { get; init; }
-
-    /// <summary>
     /// Block splitting configuration.
     /// </summary>
     public bool TrimInitialWhitespace { get; init; } = true;
@@ -60,12 +48,9 @@ public sealed class ParserConfig
     public Func<string, IEnumerator<string>, Queue<string>, IEnumerable<Pair>>? UnknownTokenHandler { get; init; }
 
     /// <summary>
-    /// Whether Table output is supported for this parser.
+    /// Custom block splitter. When set, replaces the default Helpers.GetBlocks behavior.
+    /// Receives the input TextReader and returns an enumerable of raw block strings.
+    /// When set, TrimInitialWhitespace and TrimEndingWhitespace are ignored.
     /// </summary>
-    public bool SupportsTableOutput { get; init; }
-
-    /// <summary>
-    /// Message to show when table output is requested but not supported.
-    /// </summary>
-    public string? TableNotSupportedMessage { get; init; }
+    public Func<TextReader, IEnumerable<string>>? BlockSplitter { get; init; }
 }

@@ -28,4 +28,13 @@ public sealed class TokenizerConfig
     /// Both parsers currently need this.
     /// </summary>
     public bool EmitNewLineTokens { get; init; } = true;
+
+    /// <summary>
+    /// When true, the tokenizer tracks leading whitespace on each line and
+    /// produces <see cref="Token"/> values with a <see cref="Token.Depth"/> property.
+    /// Use <see cref="BlockParser.TokenizeWithDepth"/> to obtain depth-annotated tokens,
+    /// or set this flag and let <see cref="BlockParser.ParseBlock(string, ParserConfig)"/>
+    /// route automatically to the depth-based tree builder.
+    /// </summary>
+    public bool MeasureIndentation { get; init; }
 }

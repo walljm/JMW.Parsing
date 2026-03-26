@@ -8,13 +8,15 @@ namespace JMW.Parsing;
 public sealed class KeywordDef
 {
     /// <summary>How the keyword's value is read from the stream.</summary>
-    public required KeywordKind Kind { get; init; }
+    public KeywordKind Kind { get; init; } = KeywordKind.Next;
 
     /// <summary>
     /// Child keywords recognized when inside this keyword's group scope.
+    /// Each child carries its own KeywordDef so it can have a CustomHandler,
+    /// Kind, or other behavior independent of the top-level registry.
     /// Null means this is not a group keyword.
     /// </summary>
-    public Dictionary<string, KeywordKind>? ChildKeywords { get; init; }
+    public Dictionary<string, KeywordDef>? ChildKeywords { get; init; }
 
     /// <summary>
     /// Child keywords that themselves are multi-token (compound) keywords.
@@ -32,9 +34,15 @@ public sealed class KeywordDef
 
     /// <summary>
     /// When true, repeated occurrences of this keyword are collected into an array Pair.
-    /// The array key is "{keyword}s".
+    /// The array key defaults to "{keyword}s" unless ArrayKey is set.
     /// </summary>
     public bool IsArray { get; init; }
+
+    /// <summary>
+    /// Custom key name for the array wrapper Pair. When null, defaults to "{keyword}s".
+    /// Use this to override naive pluralization (e.g. "addresses" instead of "addresss").
+    /// </summary>
+    public string? ArrayKey { get; init; }
 
     /// <summary>
     /// When true, the children of array items are merged into a single flat object
@@ -63,8 +71,9 @@ public sealed class MultiTokenDef
     public required KeywordKind Kind { get; init; }
 
     /// <summary>
-    /// The sequence of following keywords expected. Keys are the token text,
-    /// values are what that sub-keyword means (Drop = consume but don't include in key name).
+    /// The ordered sequence of following tokens expected.
+    /// Token is the text to match, Kind is how to handle it (Drop = consume but omit from key name).
+    /// Order matters: tokens are matched in sequence.
     /// </summary>
-    public required Dictionary<string, KeywordKind> Keywords { get; init; }
+    public required IReadOnlyList<(string Token, KeywordKind Kind)> Keywords { get; init; }
 }

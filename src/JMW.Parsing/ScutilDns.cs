@@ -4,22 +4,6 @@ public static class ScutilDns
 {
     #region Public Parse/Output
 
-    public static void Parse(TextReader inputReader, TextWriter outputWriter, DisplayOptions displayOptions)
-    {
-        if (displayOptions.OutputType == OutputType.KeyValue)
-        {
-            OutputKeyValues(inputReader, outputWriter);
-        }
-        else if (displayOptions.OutputType == OutputType.Json)
-        {
-            OutputJson(inputReader, outputWriter);
-        }
-        else if (displayOptions.OutputType == OutputType.Table)
-        {
-            Console.Error.WriteLine("Table output is not supported for scutil --dns. Use Json or KeyValue.");
-        }
-    }
-
     public static void OutputKeyValues(TextReader inputReader, TextWriter outputWriter)
     {
         PairWriter.WriteKeyValues(BlockParser.ParseBlocks(inputReader, BuildConfig()), outputWriter);
@@ -47,8 +31,6 @@ public static class ScutilDns
                 EmitNewLineTokens = true,
             },
 
-            OptionDelimiters = ('(', ')'),
-            OptionsReadUntilNewLine = true,
             TrimInitialWhitespace = true,
             TrimEndingWhitespace = false,
 
@@ -85,7 +67,7 @@ public static class ScutilDns
             { "nameserver", new KeywordDef { Kind = KeywordKind.Next, IsArray = true } },
             { "if_index", new KeywordDef { Kind = KeywordKind.NewLine } },
             { "flags", new KeywordDef { Kind = KeywordKind.NewLine } },
-            { "reach", new KeywordDef { Kind = KeywordKind.Options } },
+            { "reach", new KeywordDef { CustomHandler = KeywordHandlers.Options('(', ')', readUntilNewLine: true) } },
             { "domain", new KeywordDef { Kind = KeywordKind.Next } },
             { "options", new KeywordDef { Kind = KeywordKind.Next } },
             { "timeout", new KeywordDef { Kind = KeywordKind.Next } },
@@ -98,7 +80,7 @@ public static class ScutilDns
                     MultiToken = new MultiTokenDef
                     {
                         Kind = KeywordKind.Next,
-                        Keywords = new() { { "domain", KeywordKind.Next } },
+                        Keywords = [("domain", KeywordKind.Next)],
                     },
                 }
             },

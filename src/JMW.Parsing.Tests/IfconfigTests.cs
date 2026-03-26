@@ -952,7 +952,7 @@ en7: flags=8863<UP,BROADCAST,SMART,RUNNING,SIMPLEX,MULTICAST> mtu 1500
 
         using var reader = new StringReader(ifconfigOutput);
         using var writer = new StringWriter();
-        Ifconfig.Parse(reader, writer, new DisplayOptions(OutputType.Json));
+        Ifconfig.OutputJson(reader, writer);
 
         var actualOutput = writer.ToString();
         testOutputHelper.WriteLine(actualOutput);
@@ -1846,7 +1846,7 @@ en7: flags=8863<UP,BROADCAST,SMART,RUNNING,SIMPLEX,MULTICAST> mtu 1500
 
         using var reader = new StringReader(ifconfigOutput);
         using var writer = new StringWriter();
-        Ifconfig.Parse(reader, writer, new DisplayOptions(OutputType.Json, null));
+        Ifconfig.OutputJson(reader, writer);
 
         var actualOutput = writer.ToString();
         testOutputHelper.WriteLine(actualOutput);
@@ -2134,7 +2134,7 @@ wlp2s0: flags=4163<UP,BROADCAST,RUNNING,MULTICAST>  mtu 1500
 
         using var reader = new StringReader(ifconfigOutput);
         using var writer = new StringWriter();
-        Ifconfig.Parse(reader, writer, new DisplayOptions(OutputType.Json));
+        Ifconfig.OutputJson(reader, writer);
 
         var actualOutput = writer.ToString();
         testOutputHelper.WriteLine(actualOutput);
@@ -2813,7 +2813,7 @@ ztrfyb5gbi: flags=4163<UP,BROADCAST,RUNNING,MULTICAST>  mtu 2800
 
         using var reader = new StringReader(ifconfigOutput);
         using var writer = new StringWriter();
-        Ifconfig.Parse(reader, writer, new DisplayOptions(OutputType.Json));
+        Ifconfig.OutputJson(reader, writer);
 
         var actualOutput = writer.ToString();
         testOutputHelper.WriteLine(actualOutput);
@@ -2838,7 +2838,7 @@ en0: flags=8863<UP,BROADCAST,SMART,RUNNING,SIMPLEX,MULTICAST> mtu 1500
 
         using var reader = new StringReader(ifconfigOutput);
         using var writer = new StringWriter();
-        Ifconfig.Parse(reader, writer, new DisplayOptions(OutputType.KeyValue));
+        Ifconfig.OutputKeyValues(reader, writer);
 
         var actualOutput = writer.ToString();
         testOutputHelper.WriteLine(actualOutput);
@@ -2873,7 +2873,7 @@ stf0: flags=0<> mtu 1280
 
         using var reader = new StringReader(ifconfigOutput);
         using var writer = new StringWriter();
-        Ifconfig.Parse(reader, writer, new DisplayOptions(OutputType.Table, ConsoleWidth: 250));
+        IfconfigTableRenderer.OutputTable(reader, writer, new DisplayOptions(OutputType.Table, ConsoleWidth: 250));
 
         var actualOutput = writer.ToString();
         testOutputHelper.WriteLine(actualOutput);
@@ -2905,7 +2905,7 @@ gif0: flags=8010<POINTOPOINT,MULTICAST> mtu 1280
 
         using var reader = new StringReader(ifconfigOutput);
         using var writer = new StringWriter();
-        Ifconfig.Parse(reader, writer, new DisplayOptions(OutputType.Table, ConsoleWidth: 250, Filter: "en0"));
+        IfconfigTableRenderer.OutputTable(reader, writer, new DisplayOptions(OutputType.Table, ConsoleWidth: 250, Filter: "en0"));
 
         var actualOutput = writer.ToString();
         testOutputHelper.WriteLine(actualOutput);
@@ -2929,7 +2929,7 @@ lo0: flags=8049<UP,LOOPBACK,RUNNING,MULTICAST> mtu 16384
         Console.SetError(errorWriter);
         try
         {
-            Ifconfig.Parse(reader, writer, new DisplayOptions(OutputType.Table, ConsoleWidth: 250, Filter: "[invalid"));
+            IfconfigTableRenderer.OutputTable(reader, writer, new DisplayOptions(OutputType.Table, ConsoleWidth: 250, Filter: "[invalid"));
 
             Assert.Empty(writer.ToString());
             Assert.Contains("Invalid filter regex", errorWriter.ToString());
@@ -2953,7 +2953,7 @@ en0: flags=8863<UP,BROADCAST,SMART,RUNNING,SIMPLEX,MULTICAST> mtu 1500
 
         using var reader = new StringReader(ifconfigOutput);
         using var writer = new StringWriter();
-        Ifconfig.Parse(reader, writer, new DisplayOptions(OutputType.Table, ConsoleWidth: 80));
+        IfconfigTableRenderer.OutputTable(reader, writer, new DisplayOptions(OutputType.Table, ConsoleWidth: 80));
 
         var actualOutput = writer.ToString();
         testOutputHelper.WriteLine(actualOutput);
@@ -2996,7 +2996,7 @@ lo: flags=73<UP,LOOPBACK,RUNNING>  mtu 65536
 
         using var reader = new StringReader(ifconfigOutput);
         using var writer = new StringWriter();
-        Ifconfig.Parse(reader, writer, new DisplayOptions(OutputType.Table, ConsoleWidth: 250));
+        IfconfigTableRenderer.OutputTable(reader, writer, new DisplayOptions(OutputType.Table, ConsoleWidth: 250));
 
         var actualOutput = writer.ToString();
         testOutputHelper.WriteLine(actualOutput);
@@ -3031,7 +3031,7 @@ lo: flags=73<UP,LOOPBACK,RUNNING>  mtu 65536
 
         using var reader = new StringReader(ifconfigOutput);
         using var writer = new StringWriter();
-        Ifconfig.Parse(reader, writer, new DisplayOptions(OutputType.KeyValue));
+        Ifconfig.OutputKeyValues(reader, writer);
 
         var actualOutput = writer.ToString();
         testOutputHelper.WriteLine(actualOutput);
@@ -3070,7 +3070,7 @@ en0: flags=8863<UP,BROADCAST,SMART,RUNNING,SIMPLEX,MULTICAST> mtu 1500
 
         using var reader = new StringReader(ifconfigOutput);
         using var writer = new StringWriter();
-        Ifconfig.Parse(reader, writer, new DisplayOptions(OutputType.Table, ConsoleWidth: 250));
+        IfconfigTableRenderer.OutputTable(reader, writer, new DisplayOptions(OutputType.Table, ConsoleWidth: 250));
 
         var actualOutput = writer.ToString();
         testOutputHelper.WriteLine(actualOutput);
@@ -3087,7 +3087,7 @@ en0: flags=8863<UP,BROADCAST,SMART,RUNNING,SIMPLEX,MULTICAST> mtu 1500
     {
         using var reader = new StringReader("");
         using var writer = new StringWriter();
-        Ifconfig.Parse(reader, writer, new DisplayOptions(OutputType.Json));
+        Ifconfig.OutputJson(reader, writer);
 
         var actualOutput = writer.ToString();
         testOutputHelper.WriteLine(actualOutput);
@@ -3101,7 +3101,7 @@ en0: flags=8863<UP,BROADCAST,SMART,RUNNING,SIMPLEX,MULTICAST> mtu 1500
     {
         using var reader = new StringReader("");
         using var writer = new StringWriter();
-        Ifconfig.Parse(reader, writer, new DisplayOptions(OutputType.KeyValue));
+        Ifconfig.OutputKeyValues(reader, writer);
 
         // Should produce no output
         Assert.Equal("", writer.ToString());
@@ -3112,7 +3112,7 @@ en0: flags=8863<UP,BROADCAST,SMART,RUNNING,SIMPLEX,MULTICAST> mtu 1500
     {
         using var reader = new StringReader("");
         using var writer = new StringWriter();
-        Ifconfig.Parse(reader, writer, new DisplayOptions(OutputType.Table, ConsoleWidth: 120));
+        IfconfigTableRenderer.OutputTable(reader, writer, new DisplayOptions(OutputType.Table, ConsoleWidth: 120));
 
         var actualOutput = writer.ToString();
         testOutputHelper.WriteLine(actualOutput);

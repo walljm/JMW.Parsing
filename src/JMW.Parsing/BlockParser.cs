@@ -14,7 +14,10 @@ public static class BlockParser
     /// </summary>
     public static IEnumerable<IReadOnlyList<Pair>> ParseBlocks(TextReader input, ParserConfig config)
     {
-        var blocks = Helpers.GetBlocks(input, config.TrimInitialWhitespace, config.TrimEndingWhitespace);
+        var blocks = config.BlockSplitter is not null
+            ? config.BlockSplitter(input)
+            : Helpers.GetBlocks(input, config.TrimInitialWhitespace, config.TrimEndingWhitespace);
+
         foreach (var block in blocks)
         {
             if (config.BlockFilter is not null && !config.BlockFilter(block))
@@ -23,10 +26,26 @@ public static class BlockParser
                 continue;
             }
 
-            using var blockReader = new StringReader(block);
-            var tokens = Tokenize(blockReader, config.Tokenizer);
-            yield return WalkTokens(tokens, config).ToArray();
+            yield return ParseBlock(block, config);
         }
+    }
+
+    /// <summary>
+    /// Parse a single pre-split block of text into a Pair collection.
+    /// Useful when callers already have blocks from their own splitting logic.
+    /// </summary>
+    public static IReadOnlyList<Pair> ParseBlock(string block, ParserConfig config)
+    {
+        using var blockReader = new StringReader(block);
+
+        if (config.Tokenizer.MeasureIndentation)
+        {
+            var tokens = TokenizeWithDepth(blockReader, config.Tokenizer);
+            return BuildTreeFromDepth(CollectLines(tokens));
+        }
+
+        var flatTokens = Tokenize(blockReader, config.Tokenizer);
+        return WalkTokens(flatTokens, config).ToArray();
     }
 
     /// <summary>
@@ -92,6 +111,88 @@ public static class BlockParser
             StripTrailingAndYield(sb, config);
             foreach (var t in FlushBuffer(sb, config))
                 yield return t;
+        }
+    }
+
+    /// <summary>
+    /// Tokenize raw text into a stream of depth-annotated tokens.
+    /// Leading whitespace on each line is measured and stored as <see cref="Token.Depth"/>.
+    /// Requires <see cref="TokenizerConfig.MeasureIndentation"/> to be set (enforced by convention, not runtime check).
+    /// </summary>
+    public static IEnumerable<Token> TokenizeWithDepth(TextReader output, TokenizerConfig config)
+    {
+        int? c;
+        var sb = new StringBuilder();
+        var lineStart = true;
+        var currentDepth = 0;
+
+        while ((c = output.Read()) != -1)
+        {
+            var ch = (char)c;
+
+            if (ch == '\n')
+            {
+                if (sb.Length > 0)
+                {
+                    StripTrailingAndYield(sb, config);
+                    foreach (var t in FlushBuffer(sb, config))
+                        yield return new Token(t, currentDepth);
+                }
+
+                if (config.EmitNewLineTokens)
+                {
+                    yield return new Token(Helpers.NewLine, 0);
+                }
+
+                lineStart = true;
+                currentDepth = 0;
+                continue;
+            }
+
+            // Count leading whitespace as depth
+            if (lineStart && char.IsWhiteSpace(ch))
+            {
+                currentDepth++;
+                continue;
+            }
+
+            lineStart = false;
+
+            if (config.Separators.Contains(ch))
+            {
+                if (sb.Length > 0)
+                {
+                    StripTrailingAndYield(sb, config);
+                    foreach (var t in FlushBuffer(sb, config))
+                        yield return new Token(t, currentDepth);
+                }
+
+                continue;
+            }
+
+            if (!char.IsWhiteSpace(ch))
+            {
+                sb.Append(ch);
+                continue;
+            }
+
+            // Whitespace mid-line — flush current token
+            if (sb.Length == 0)
+            {
+                continue;
+            }
+
+            StripTrailingAndYield(sb, config);
+            foreach (var t in FlushBuffer(sb, config))
+                yield return new Token(t, currentDepth);
+        }
+
+        // flush remainder
+        if (sb.Length > 0)
+        {
+            StripTrailingAndYield(sb, config);
+            foreach (var t in FlushBuffer(sb, config))
+                yield return new Token(t, currentDepth);
         }
     }
 
@@ -247,7 +348,7 @@ public static class BlockParser
         }
         else
         {
-            foreach (var pair in HandleSingleKeyword(queue, enumerator, def.Kind, token, config))
+            foreach (var pair in ReadKeywordValue(queue, enumerator, def.Kind, token))
             {
                 yield return pair;
             }
@@ -265,7 +366,7 @@ public static class BlockParser
 
         if (def.Kind == KeywordKind.GroupNext)
         {
-            pairChildren.AddRange(HandleSingleKeyword(queue, enumerator, KeywordKind.Next, token, config));
+            pairChildren.AddRange(ReadKeywordValue(queue, enumerator, KeywordKind.Next, token));
         }
 
         while (Helpers.TryGetValue(enumerator, queue, out var nextToken))
@@ -275,23 +376,28 @@ public static class BlockParser
                 continue;
             }
 
-            if (def.ChildKeywords!.TryGetValue(nextToken, out var childKind))
+            if (def.ChildKeywords!.TryGetValue(nextToken, out var childDef))
             {
-                // Is this child also a top-level group keyword?
-                if (config.Keywords.TryGetValue(nextToken, out var childDef) && childDef.IsGroup)
+                // If child has a custom handler, use it
+                if (childDef.CustomHandler is not null)
                 {
-                    if (childDef.IsArray)
+                    pairChildren.AddRange(childDef.CustomHandler(nextToken, enumerator, queue));
+                }
+                // If this is also a top-level group keyword, use the full top-level definition
+                else if (config.Keywords.TryGetValue(nextToken, out var topLevelDef) && topLevelDef.IsGroup)
+                {
+                    if (topLevelDef.IsArray)
                     {
-                        pairChildren.AddRange(HandleArrayKeyword(queue, enumerator, nextToken, childDef, config));
+                        pairChildren.AddRange(HandleArrayKeyword(queue, enumerator, nextToken, topLevelDef, config));
                     }
                     else
                     {
-                        pairChildren.AddRange(HandleGroup(queue, enumerator, nextToken, childDef, config));
+                        pairChildren.AddRange(HandleGroup(queue, enumerator, nextToken, topLevelDef, config));
                     }
                 }
                 else
                 {
-                    pairChildren.AddRange(HandleSingleKeyword(queue, enumerator, childKind, nextToken, config));
+                    pairChildren.AddRange(ReadKeywordValue(queue, enumerator, childDef.Kind, nextToken));
                 }
             }
             else if (def.ChildMultiTokenKeywords is not null && def.ChildMultiTokenKeywords.ContainsKey(nextToken))
@@ -315,7 +421,7 @@ public static class BlockParser
         KeywordDef def,
         ParserConfig config)
     {
-        var key = $"{token}s";
+        var key = def.ArrayKey ?? $"{token}s";
         var pairChildren = new List<Pair>();
 
         pairChildren.AddRange(HandleGroup(queue, enumerator, token, def, config));
@@ -356,10 +462,14 @@ public static class BlockParser
             currentToken = BuildMultiTokenKey(queue, enumerator, def.MultiToken, token);
         }
 
-        var key = $"{currentToken}s";
+        var key = def.ArrayKey ?? $"{currentToken}s";
 
-        enumerator.MoveNext();
-        pairChildren.AddRange(HandleSingleKeyword(queue, enumerator, def.Kind, $"{currentToken}{enumerator.Current}", config));
+        if (!enumerator.MoveNext())
+        {
+            yield break;
+        }
+
+        pairChildren.AddRange(ReadKeywordValue(queue, enumerator, def.Kind, $"{currentToken}{enumerator.Current}"));
 
         while (Helpers.TryGetValue(enumerator, queue, out var nextToken))
         {
@@ -373,13 +483,21 @@ public static class BlockParser
                 if (def.MultiToken is not null)
                 {
                     var childToken = BuildMultiTokenKey(queue, enumerator, def.MultiToken, token);
-                    enumerator.MoveNext();
-                    pairChildren.AddRange(HandleSingleKeyword(queue, enumerator, def.Kind, $"{childToken}{enumerator.Current}", config));
+                    if (!enumerator.MoveNext())
+                    {
+                        break;
+                    }
+
+                    pairChildren.AddRange(ReadKeywordValue(queue, enumerator, def.Kind, $"{childToken}{enumerator.Current}"));
                 }
                 else
                 {
-                    enumerator.MoveNext();
-                    pairChildren.AddRange(HandleSingleKeyword(queue, enumerator, def.Kind, $"{token}{enumerator.Current}", config));
+                    if (!enumerator.MoveNext())
+                    {
+                        break;
+                    }
+
+                    pairChildren.AddRange(ReadKeywordValue(queue, enumerator, def.Kind, $"{token}{enumerator.Current}"));
                 }
             }
             else
@@ -401,21 +519,21 @@ public static class BlockParser
         var key = token;
         var escape = false;
 
-        foreach (var item in multiToken.Keywords)
+        foreach (var (expectedToken, expectedKind) in multiToken.Keywords)
         {
             if (!Helpers.TryGetValue(enumerator, queue, out var nextItem))
             {
                 yield break;
             }
 
-            if (!multiToken.Keywords.ContainsKey(nextItem))
+            if (nextItem != expectedToken)
             {
                 queue.Enqueue(nextItem);
                 escape = true;
                 break;
             }
 
-            if (item.Value != KeywordKind.Drop)
+            if (expectedKind != KeywordKind.Drop)
             {
                 key += $" {nextItem}";
             }
@@ -426,8 +544,8 @@ public static class BlockParser
             yield break;
         }
 
-        // Use Helpers.HandleSingleKeyword for the final value read
-        foreach (var pair in Helpers.HandleSingleKeyword(queue, enumerator, multiToken.Kind, key, '<', '>'))
+        // Use ReadKeywordValue for the final value read
+        foreach (var pair in ReadKeywordValue(queue, enumerator, multiToken.Kind, key))
         {
             yield return pair;
         }
@@ -440,14 +558,14 @@ public static class BlockParser
         string token)
     {
         var key = token;
-        foreach (var _ in multiToken.Keywords)
+        foreach (var (expectedToken, _) in multiToken.Keywords)
         {
             if (!Helpers.TryGetValue(enumerator, queue, out var nextItem))
             {
                 break;
             }
 
-            if (!multiToken.Keywords.ContainsKey(nextItem))
+            if (nextItem != expectedToken)
             {
                 queue.Enqueue(nextItem);
                 break;
@@ -459,16 +577,127 @@ public static class BlockParser
         return key;
     }
 
-    private static IEnumerable<Pair> HandleSingleKeyword(
+    /// <summary>
+    /// Read a keyword's value from the token stream based on the keyword kind.
+    /// Handles NewLine, Next, and Single kinds.
+    /// </summary>
+    internal static IEnumerable<Pair> ReadKeywordValue(
         Queue<string> queue,
         IEnumerator<string> enumerator,
         KeywordKind kind,
-        string token,
-        ParserConfig config)
+        string token)
     {
-        return Helpers.HandleSingleKeyword(
-            queue, enumerator, kind, token,
-            config.OptionDelimiters.Open, config.OptionDelimiters.Close,
-            config.OptionsReadUntilNewLine);
+        if (kind == KeywordKind.NewLine)
+        {
+            var sb = new StringBuilder();
+            while (Helpers.TryGetValue(enumerator, queue, out var nextItem) && nextItem != Helpers.NewLine)
+            {
+                sb.Append(' ').Append(nextItem);
+            }
+
+            yield return new Pair(token, sb.ToString().TrimStart(), []);
+        }
+        else if (kind == KeywordKind.Next)
+        {
+            if (Helpers.TryGetValue(enumerator, queue, out var value))
+            {
+                yield return new Pair(token, value, []);
+            }
+        }
+        else if (kind == KeywordKind.Single)
+        {
+            yield return new Pair(token, "true", []);
+        }
+        else
+        {
+            throw new InvalidOperationException($"Unsupported keyword kind: {kind}. Use CustomHandler for format-specific patterns.");
+        }
+    }
+
+    /// <summary>
+    /// Collect depth-annotated tokens into per-line entries (depth, key, value).
+    /// Each line's first token becomes the key; remaining tokens are space-joined into the value.
+    /// </summary>
+    private static List<(int Depth, string Key, string Value)> CollectLines(IEnumerable<Token> tokens)
+    {
+        var lines = new List<(int Depth, string Key, string Value)>();
+        var lineTokens = new List<string>();
+        var lineDepth = 0;
+
+        foreach (var token in tokens)
+        {
+            if (token.Value == Helpers.NewLine)
+            {
+                if (lineTokens.Count > 0)
+                {
+                    lines.Add((lineDepth, lineTokens[0],
+                        lineTokens.Count > 1
+                            ? string.Join(" ", lineTokens.Skip(1))
+                            : string.Empty));
+                    lineTokens.Clear();
+                }
+
+                continue;
+            }
+
+            if (lineTokens.Count == 0)
+            {
+                lineDepth = token.Depth;
+            }
+
+            lineTokens.Add(token.Value);
+        }
+
+        // Flush last line (input may not end with newline)
+        if (lineTokens.Count > 0)
+        {
+            lines.Add((lineDepth, lineTokens[0],
+                lineTokens.Count > 1
+                    ? string.Join(" ", lineTokens.Skip(1))
+                    : string.Empty));
+        }
+
+        return lines;
+    }
+
+    /// <summary>
+    /// Build a Pair tree from line entries using indentation depth to determine parent/child relationships.
+    /// Lines at greater depth become children of the nearest preceding line at lesser depth.
+    /// </summary>
+    private static IReadOnlyList<Pair> BuildTreeFromDepth(List<(int Depth, string Key, string Value)> lines)
+    {
+        if (lines.Count == 0)
+        {
+            return [];
+        }
+
+        // Stack of open frames. Each frame accumulates children until a same-or-lesser depth line closes it.
+        var stack = new Stack<(int Depth, string Key, string Value, List<Pair> Children)>();
+
+        // Sentinel root at depth -1 collects all top-level pairs.
+        stack.Push((-1, string.Empty, string.Empty, new List<Pair>()));
+
+        foreach (var (depth, key, value) in lines)
+        {
+            // Pop completed frames back to the appropriate parent.
+            while (stack.Count > 1 && stack.Peek().Depth >= depth)
+            {
+                var completed = stack.Pop();
+                var childType = completed.Children.Count > 0 ? ChildType.ObjectType : ChildType.StringType;
+                stack.Peek().Children.Add(new Pair(completed.Key, completed.Value, completed.Children, childType));
+            }
+
+            stack.Push((depth, key, value, new List<Pair>()));
+        }
+
+        // Unwind remaining frames.
+        while (stack.Count > 1)
+        {
+            var completed = stack.Pop();
+            var childType = completed.Children.Count > 0 ? ChildType.ObjectType : ChildType.StringType;
+            stack.Peek().Children.Add(new Pair(completed.Key, completed.Value, completed.Children, childType));
+        }
+
+        return stack.Pop().Children;
     }
 }

@@ -5,8 +5,9 @@ namespace JMW.Parsing;
 
 public static class PairWriter
 {
-    public static void WriteJson(IEnumerable<IReadOnlyList<Pair>> blocksOfPairs, TextWriter output)
+    public static void WriteJson(IEnumerable<IReadOnlyList<Pair>> blocksOfPairs, TextWriter output, Func<string, string>? keyTransform = null)
     {
+        keyTransform ??= Helpers.CleanKey;
         var jsonWriterOptions = new JsonWriterOptions { Indented = true };
 
         using var stream = new MemoryStream();
@@ -24,7 +25,7 @@ public static class PairWriter
             writer.WriteStartObject();
             foreach (var pair in pairs)
             {
-                WritePairJson(pair, writer);
+                WritePairJson(pair, writer, keyTransform: keyTransform);
             }
 
             writer.Flush();
@@ -36,25 +37,27 @@ public static class PairWriter
         output.WriteLine(Encoding.UTF8.GetString(stream.GetBuffer(), 0, (int)stream.Position));
     }
 
-    public static void WriteKeyValues(IEnumerable<IEnumerable<Pair>> blocksOfPairs, TextWriter output)
+    public static void WriteKeyValues(IEnumerable<IEnumerable<Pair>> blocksOfPairs, TextWriter output, Func<string, string>? keyTransform = null)
     {
+        keyTransform ??= Helpers.CleanKey;
         foreach (var pairs in blocksOfPairs)
         {
             output.WriteLine(); // empty line for a spacer
 
             foreach (var pair in pairs)
             {
-                WritePairKeyValues(pair, output);
+                WritePairKeyValues(pair, output, keyTransform: keyTransform);
             }
         }
     }
 
-    public static void WritePairJson(Pair pair, Utf8JsonWriter writer, bool ignoreKey = false)
+    public static void WritePairJson(Pair pair, Utf8JsonWriter writer, bool ignoreKey = false, Func<string, string>? keyTransform = null)
     {
+        keyTransform ??= Helpers.CleanKey;
         switch (pair.ChildType)
         {
             case ChildType.StringType:
-                writer.WriteString(Helpers.CleanKey(pair.Key), pair.Value);
+                writer.WriteString(keyTransform(pair.Key), pair.Value);
                 break;
 
             case ChildType.ObjectType:
@@ -65,12 +68,12 @@ public static class PairWriter
                 }
                 else
                 {
-                    writer.WriteStartObject(Helpers.CleanKey(pair.Key));
+                    writer.WriteStartObject(keyTransform(pair.Key));
                 }
 
                 foreach (var child in pair.Children)
                 {
-                    WritePairJson(child, writer);
+                    WritePairJson(child, writer, keyTransform: keyTransform);
                 }
 
                 writer.WriteEndObject();
@@ -84,7 +87,7 @@ public static class PairWriter
                 }
                 else
                 {
-                    writer.WriteStartArray(Helpers.CleanKey(pair.Key));
+                    writer.WriteStartArray(keyTransform(pair.Key));
                 }
 
                 foreach (var child in pair.Children)
@@ -95,7 +98,7 @@ public static class PairWriter
                     }
                     else
                     {
-                        WritePairJson(child, writer, true);
+                        WritePairJson(child, writer, true, keyTransform: keyTransform);
                     }
                 }
 
@@ -104,14 +107,15 @@ public static class PairWriter
         }
     }
 
-    public static void WritePairKeyValues(Pair pair, TextWriter writer, int indent = 0)
+    public static void WritePairKeyValues(Pair pair, TextWriter writer, int indent = 0, Func<string, string>? keyTransform = null)
     {
-        writer.WriteLine($"{string.Empty.PadLeft(indent)}{Helpers.CleanKey(pair.Key)}: {pair.Value}");
+        keyTransform ??= Helpers.CleanKey;
+        writer.WriteLine($"{string.Empty.PadLeft(indent)}{keyTransform(pair.Key)}: {pair.Value}");
         if (pair.Children.Count > 0)
         {
             foreach (var child in pair.Children)
             {
-                WritePairKeyValues(child, writer, indent + 4);
+                WritePairKeyValues(child, writer, indent + 4, keyTransform: keyTransform);
             }
         }
     }

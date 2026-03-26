@@ -1,6 +1,7 @@
 ﻿using System.Diagnostics;
 using System.Runtime.InteropServices;
 using CommandLine;
+using JMW.MachineInfo;
 using JMW.Parsing;
 
 public class Program
@@ -24,7 +25,6 @@ public class Program
             return;
         }
 
-        var parsingOpts = new DisplayOptions(options.OutputType, Console.BufferWidth, options.Filter);
         if (options.UseIfconfig)
         {
             using var process = new Process();
@@ -38,7 +38,19 @@ public class Program
             process.WaitForExit();
 
             using var reader = new StringReader(output);
-            Ifconfig.Parse(reader, Console.Out, parsingOpts);
+            switch (options.OutputType)
+            {
+                case OutputType.Json:
+                    Ifconfig.OutputJson(reader, Console.Out);
+                    break;
+                case OutputType.KeyValue:
+                    Ifconfig.OutputKeyValues(reader, Console.Out);
+                    break;
+                case OutputType.Table:
+                    var displayOpts = new DisplayOptions(options.OutputType, Console.BufferWidth, options.Filter);
+                    IfconfigTableRenderer.OutputTable(reader, Console.Out, displayOpts);
+                    break;
+            }
         }
         else if (options.UseScutilDns)
         {
@@ -59,7 +71,18 @@ public class Program
             process.WaitForExit();
 
             using var reader = new StringReader(output);
-            ScutilDns.Parse(reader, Console.Out, parsingOpts);
+            switch (options.OutputType)
+            {
+                case OutputType.Json:
+                    ScutilDns.OutputJson(reader, Console.Out);
+                    break;
+                case OutputType.KeyValue:
+                    ScutilDns.OutputKeyValues(reader, Console.Out);
+                    break;
+                case OutputType.Table:
+                    Console.Error.WriteLine("Table output is not supported for scutil --dns. Use Json or KeyValue.");
+                    break;
+            }
         }
         else
         {

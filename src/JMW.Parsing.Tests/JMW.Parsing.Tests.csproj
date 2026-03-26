@@ -24,6 +24,7 @@
 
     <ItemGroup>
         <ProjectReference Include="..\JMW.Parsing\JMW.Parsing.csproj"/>
+        <ProjectReference Include="..\JMW.MachineInfo\JMW.MachineInfo.csproj"/>
     </ItemGroup>
 
 </Project>
