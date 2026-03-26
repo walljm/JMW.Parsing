@@ -49,7 +49,8 @@ public static class Ifconfig
     {
         var blocks = Helpers.GetBlocks(inputReader, trimInitialWhitespace: true, trimEndingWhitespace: false);
 
-        var columns = typeof(Ifc).GetProperties().Select(static o => o.Name).ToArray();
+        #region Convert blocks to pocos
+
         var data = new List<Ifc>();
         foreach (var block in blocks)
         {
@@ -159,14 +160,25 @@ public static class Ifconfig
 
         if (displayOptions.Filter is not null)
         {
-            var opts = RegexOptions.IgnoreCase | RegexOptions.NonBacktracking | RegexOptions.CultureInvariant;
+            Regex regex;
+            try
+            {
+                var opts = RegexOptions.IgnoreCase | RegexOptions.NonBacktracking | RegexOptions.CultureInvariant;
+                regex = new Regex(displayOptions.Filter, opts);
+            }
+            catch (RegexParseException ex)
+            {
+                Console.Error.WriteLine($"Invalid filter regex: {ex.Message}");
+                return;
+            }
+
             data = data.Where(
-                    o => Regex.IsMatch(o.Status, displayOptions.Filter, opts)
-                      || Regex.IsMatch(o.Name, displayOptions.Filter, opts)
-                      || Regex.IsMatch(o.IP, displayOptions.Filter, opts)
-                      || Regex.IsMatch(o.MAC, displayOptions.Filter, opts)
-                      || Regex.IsMatch(o.AdminStatus, displayOptions.Filter, opts)
-                      || Regex.IsMatch(o.OperStatus, displayOptions.Filter, opts)
+                    o => regex.IsMatch(o.Status)
+                      || regex.IsMatch(o.Name)
+                      || regex.IsMatch(o.IP)
+                      || regex.IsMatch(o.MAC)
+                      || regex.IsMatch(o.AdminStatus)
+                      || regex.IsMatch(o.OperStatus)
                 )
                .ToList();
         }
@@ -222,7 +234,7 @@ public static class Ifconfig
         return cidr;
     }
 
-    private record Ifc
+    private class Ifc
     {
         public string Name { get; set; } = string.Empty;
         public string Status { get; set; } = string.Empty;
@@ -270,92 +282,22 @@ public static class Ifconfig
 
         writer.WriteEndArray();
         writer.Flush();
-        var json = Encoding.UTF8.GetString(stream.ToArray());
-        outputWriter.WriteLine(json);
+        outputWriter.WriteLine(Encoding.UTF8.GetString(stream.GetBuffer(), 0, (int)stream.Position));
     }
 
     #endregion
 
     #region Classes and Constants
 
-    private record Pair(string Key, string Value, Pair[] Children, ChildType ChildType = ChildType.StringType)
-    {
-        public void WriteJson(Utf8JsonWriter writer, bool ignoreKey = false)
-        {
-            switch (ChildType)
-            {
-                case ChildType.StringType:
-
-                    writer.WriteString(Helpers.CleanKey(Key), Value);
-                    break;
-                case ChildType.ObjectType:
-                {
-                    if (ignoreKey)
-                    {
-                        writer.WriteStartObject();
-                    }
-                    else
-                    {
-                        writer.WriteStartObject(Helpers.CleanKey(Key));
-                    }
-
-                    foreach (var child in Children)
-                    {
-                        child.WriteJson(writer);
-                    }
-
-                    writer.WriteEndObject();
-                }
-                    break;
-                case ChildType.ArrayType:
-                    if (ignoreKey)
-                    {
-                        writer.WriteStartArray();
-                    }
-                    else
-                    {
-                        writer.WriteStartArray(Helpers.CleanKey(Key));
-                    }
-
-                    foreach (var child in Children)
-                    {
-                        if (child.ChildType == ChildType.StringType)
-                        {
-                            writer.WriteStringValue(child.Value);
-                        }
-                        else
-                        {
-                            child.WriteJson(writer, true);
-                        }
-                    }
-
-                    writer.WriteEndArray();
-                    break;
-            }
-        }
-
-        public void WriteKeyValues(TextWriter writer, int indent = 0)
-        {
-            writer.WriteLine($"{string.Empty.PadLeft(indent)}{Helpers.CleanKey(Key)}: {Value}");
-            if (Children.Length > 0)
-            {
-                foreach (var child in Children)
-                {
-                    child.WriteKeyValues(writer, indent + 4);
-                }
-            }
-        }
-    }
-
     private record GroupDefinition(
-        string Kind,
-        Dictionary<string, string> Keywords,
+        KeywordKind Kind,
+        Dictionary<string, KeywordKind> Keywords,
         Dictionary<string, MultipleDefinition> MultipleKeywords
     );
 
     private record MultipleDefinition(
-        string Kind,
-        Dictionary<string, string> Keywords
+        KeywordKind Kind,
+        Dictionary<string, KeywordKind> Keywords
     );
 
     private static readonly HashSet<string> arrayPairs =
@@ -372,60 +314,52 @@ public static class Ifconfig
         "TX",
     ];
 
-    private const string NewLine = "<newline>";
-    private const string Next = "<next>";
-    private const string Single = "<single>";
-    private const string Options = "<options>";
-    private const string Group = "<group>";
-    private const string GroupNext = "<groupnext>";
-    private const string Drop = "<drop>";
-
-    private static readonly Dictionary<string, string> singleKeywords = new()
+    private static readonly Dictionary<string, KeywordKind> singleKeywords = new()
     {
-        { "flags", Options },
-        { "eflags", Options },
-        { "xflags", Options },
-        { "hwassist", Options },
-        { "mtu", Next },
-        { "ether", Next },
-        { "media", NewLine },
-        { "status", Next },
-        { "priority", Next },
-        { "type", NewLine },
-        { "desc", NewLine },
-        { "scheduler", Next },
-        { "routermode4", Next },
-        { "routermode6", Next },
-        { "netif", Next },
-        { "flowswitch", Next },
-        { "options", Options },
-        { "index", Next },
-        { "txqueuelen", Next },
-        { "unspec", Next },
-        { "loop", Single },
+        { "flags", KeywordKind.Options },
+        { "eflags", KeywordKind.Options },
+        { "xflags", KeywordKind.Options },
+        { "hwassist", KeywordKind.Options },
+        { "mtu", KeywordKind.Next },
+        { "ether", KeywordKind.Next },
+        { "media", KeywordKind.NewLine },
+        { "status", KeywordKind.Next },
+        { "priority", KeywordKind.Next },
+        { "type", KeywordKind.NewLine },
+        { "desc", KeywordKind.NewLine },
+        { "scheduler", KeywordKind.Next },
+        { "routermode4", KeywordKind.Next },
+        { "routermode6", KeywordKind.Next },
+        { "netif", KeywordKind.Next },
+        { "flowswitch", KeywordKind.Next },
+        { "options", KeywordKind.Options },
+        { "index", KeywordKind.Next },
+        { "txqueuelen", KeywordKind.Next },
+        { "unspec", KeywordKind.Next },
+        { "loop", KeywordKind.Single },
     };
 
     private static readonly Dictionary<string, GroupDefinition> groupKeywords = new()
     {
         {
             "Configuration", new GroupDefinition(
-                NewLine,
-                new Dictionary<string, string>
+                KeywordKind.NewLine,
+                new Dictionary<string, KeywordKind>
                 {
-                    { "id", Next },
-                    { "priority", Next },
-                    { "hellotime", Next },
-                    { "fwddelay", Next },
-                    { "maxage", Next },
-                    { "holdcnt", Next },
-                    { "proto", Next },
-                    { "maxaddr", Next },
-                    { "timeout", Next },
-                    { "ifcost", Next },
-                    { "port", Next },
-                    { "ipfilter", Next },
-                    { "flags", Next },
-                    { "root", Group },
+                    { "id", KeywordKind.Next },
+                    { "priority", KeywordKind.Next },
+                    { "hellotime", KeywordKind.Next },
+                    { "fwddelay", KeywordKind.Next },
+                    { "maxage", KeywordKind.Next },
+                    { "holdcnt", KeywordKind.Next },
+                    { "proto", KeywordKind.Next },
+                    { "maxaddr", KeywordKind.Next },
+                    { "timeout", KeywordKind.Next },
+                    { "ifcost", KeywordKind.Next },
+                    { "port", KeywordKind.Next },
+                    { "ipfilter", KeywordKind.Next },
+                    { "flags", KeywordKind.Next },
+                    { "root", KeywordKind.Group },
                 },
                 []
             )
@@ -433,33 +367,33 @@ public static class Ifconfig
 
         {
             "member", new GroupDefinition(
-                GroupNext,
-                new Dictionary<string, string>
+                KeywordKind.GroupNext,
+                new Dictionary<string, KeywordKind>
                 {
-                    { "flags", Options },
-                    { "ifmaxaddr", Next },
-                    { "port", Next },
-                    { "priority", Next },
-                    { "hostfilter", Next },
-                    { "hw", Next },
-                    { "ip", Next },
+                    { "flags", KeywordKind.Options },
+                    { "ifmaxaddr", KeywordKind.Next },
+                    { "port", KeywordKind.Next },
+                    { "priority", KeywordKind.Next },
+                    { "hostfilter", KeywordKind.Next },
+                    { "hw", KeywordKind.Next },
+                    { "ip", KeywordKind.Next },
                 },
                 new Dictionary<string, MultipleDefinition>
                 {
-                    { "path", new MultipleDefinition(Next, new Dictionary<string, string> { { "cost", Next } }) },
+                    { "path", new MultipleDefinition(KeywordKind.Next, new Dictionary<string, KeywordKind> { { "cost", KeywordKind.Next } }) },
                 }
             )
         },
 
         {
             "agent", new GroupDefinition(
-                Group,
-                new Dictionary<string, string>
+                KeywordKind.Group,
+                new Dictionary<string, KeywordKind>
                 {
-                    { "domain", Next },
-                    { "type", Next },
-                    { "flags", Next },
-                    { "desc", NewLine },
+                    { "domain", KeywordKind.Next },
+                    { "type", KeywordKind.Next },
+                    { "flags", KeywordKind.Next },
+                    { "desc", KeywordKind.NewLine },
                 },
                 []
             )
@@ -467,16 +401,16 @@ public static class Ifconfig
 
         {
             "root", new GroupDefinition(
-                Group,
-                new Dictionary<string, string>
+                KeywordKind.Group,
+                new Dictionary<string, KeywordKind>
                 {
-                    { "id", Next },
-                    { "priority", Next },
-                    { "ifcost", Next },
-                    { "port", Next },
-                    { "ipfilter", Next },
-                    { "flags", Options },
-                    { "member", Group },
+                    { "id", KeywordKind.Next },
+                    { "priority", KeywordKind.Next },
+                    { "ifcost", KeywordKind.Next },
+                    { "port", KeywordKind.Next },
+                    { "ipfilter", KeywordKind.Next },
+                    { "flags", KeywordKind.Options },
+                    { "member", KeywordKind.Group },
                 },
                 []
             )
@@ -484,57 +418,57 @@ public static class Ifconfig
 
         {
             "inet6", new GroupDefinition(
-                GroupNext,
-                new Dictionary<string, string>
+                KeywordKind.GroupNext,
+                new Dictionary<string, KeywordKind>
                 {
-                    { "prefixlen", Next },
-                    { "scopeid", Next },
-                    { "secured", Single },
+                    { "prefixlen", KeywordKind.Next },
+                    { "scopeid", KeywordKind.Next },
+                    { "secured", KeywordKind.Single },
                 },
                 []
             )
         },
         {
             "inet", new GroupDefinition(
-                GroupNext,
-                new Dictionary<string, string>
+                KeywordKind.GroupNext,
+                new Dictionary<string, KeywordKind>
                 {
-                    { "netmask", Next },
-                    { "broadcast", Next },
+                    { "netmask", KeywordKind.Next },
+                    { "broadcast", KeywordKind.Next },
                 },
                 []
             )
         },
         {
             "RX", new GroupDefinition(
-                Group,
-                new Dictionary<string, string>
+                KeywordKind.Group,
+                new Dictionary<string, KeywordKind>
                 {
-                    { "packets", Next },
-                    { "errors", Next },
-                    { "dropped", Next },
-                    { "overruns", Next },
-                    { "carrier", Next },
-                    { "frame", Next },
-                    { "collisions", Next },
-                    { "bytes", NewLine },
+                    { "packets", KeywordKind.Next },
+                    { "errors", KeywordKind.Next },
+                    { "dropped", KeywordKind.Next },
+                    { "overruns", KeywordKind.Next },
+                    { "carrier", KeywordKind.Next },
+                    { "frame", KeywordKind.Next },
+                    { "collisions", KeywordKind.Next },
+                    { "bytes", KeywordKind.NewLine },
                 },
                 []
             )
         },
         {
             "TX", new GroupDefinition(
-                Group,
-                new Dictionary<string, string>
+                KeywordKind.Group,
+                new Dictionary<string, KeywordKind>
                 {
-                    { "packets", Next },
-                    { "errors", Next },
-                    { "dropped", Next },
-                    { "overruns", Next },
-                    { "carrier", Next },
-                    { "frame", Next },
-                    { "collisions", Next },
-                    { "bytes", NewLine },
+                    { "packets", KeywordKind.Next },
+                    { "errors", KeywordKind.Next },
+                    { "dropped", KeywordKind.Next },
+                    { "overruns", KeywordKind.Next },
+                    { "carrier", KeywordKind.Next },
+                    { "frame", KeywordKind.Next },
+                    { "collisions", KeywordKind.Next },
+                    { "bytes", KeywordKind.NewLine },
                 },
                 []
             )
@@ -543,25 +477,25 @@ public static class Ifconfig
 
     private static readonly Dictionary<string, MultipleDefinition> multipleKeywords = new()
     {
-        { "nd6", new MultipleDefinition(Options, new Dictionary<string, string> { { "options", Options } }) },
-        { "root", new MultipleDefinition(Next, new Dictionary<string, string> { { "id", Next } }) },
-        { "path", new MultipleDefinition(Next, new Dictionary<string, string> { { "cost", Next } }) },
-        { "state", new MultipleDefinition(Next, new Dictionary<string, string> { { "availability", Next } }) },
-        { "qosmarking", new MultipleDefinition(Next, new Dictionary<string, string> { { "enabled", Next } }) },
-        { "generation", new MultipleDefinition(Next, new Dictionary<string, string> { { "id", Next } }) },
-        { "uplink", new MultipleDefinition(Next, new Dictionary<string, string> { { "rate", Next } }) },
-        { "downlink", new MultipleDefinition(Next, new Dictionary<string, string> { { "rate", Next } }) },
-        { "low", new MultipleDefinition(Next, new Dictionary<string, string> { { "power", Next }, { "mode", Next } }) },
+        { "nd6", new MultipleDefinition(KeywordKind.Options, new Dictionary<string, KeywordKind> { { "options", KeywordKind.Options } }) },
+        { "root", new MultipleDefinition(KeywordKind.Next, new Dictionary<string, KeywordKind> { { "id", KeywordKind.Next } }) },
+        { "path", new MultipleDefinition(KeywordKind.Next, new Dictionary<string, KeywordKind> { { "cost", KeywordKind.Next } }) },
+        { "state", new MultipleDefinition(KeywordKind.Next, new Dictionary<string, KeywordKind> { { "availability", KeywordKind.Next } }) },
+        { "qosmarking", new MultipleDefinition(KeywordKind.Next, new Dictionary<string, KeywordKind> { { "enabled", KeywordKind.Next } }) },
+        { "generation", new MultipleDefinition(KeywordKind.Next, new Dictionary<string, KeywordKind> { { "id", KeywordKind.Next } }) },
+        { "uplink", new MultipleDefinition(KeywordKind.Next, new Dictionary<string, KeywordKind> { { "rate", KeywordKind.Next } }) },
+        { "downlink", new MultipleDefinition(KeywordKind.Next, new Dictionary<string, KeywordKind> { { "rate", KeywordKind.Next } }) },
+        { "low", new MultipleDefinition(KeywordKind.Next, new Dictionary<string, KeywordKind> { { "power", KeywordKind.Next }, { "mode", KeywordKind.Next } }) },
         {
             "link",
-            new MultipleDefinition(Next, new Dictionary<string, string> { { "rate", Next }, { "quality", Next } })
+            new MultipleDefinition(KeywordKind.Next, new Dictionary<string, KeywordKind> { { "rate", KeywordKind.Next }, { "quality", KeywordKind.Next } })
         },
         {
             "multi",
             new MultipleDefinition(
-                Next,
-                new Dictionary<string, string>
-                    { { "layer", Next }, { "packet", Next }, { "logging", Next }, { "(mpklog)", Drop } }
+                KeywordKind.Next,
+                new Dictionary<string, KeywordKind>
+                    { { "layer", KeywordKind.Next }, { "packet", KeywordKind.Next }, { "logging", KeywordKind.Next }, { "(mpklog)", KeywordKind.Drop } }
             )
         },
     };
@@ -620,11 +554,6 @@ public static class Ifconfig
             }
             else if (singleKeywords.TryGetValue(token, out var kind))
             {
-                if (token is null)
-                {
-                    throw new InvalidOperationException("Token can't be null");
-                }
-
                 foreach (var item in HandleSingleKeyword(queue, enumerator, kind, token))
                 {
                     yield return item;
@@ -644,10 +573,10 @@ public static class Ifconfig
         var pairChildren = new List<Pair>();
         var value = string.Empty;
 
-        if (groupDefinition.Kind == GroupNext)
+        if (groupDefinition.Kind == KeywordKind.GroupNext)
         {
             pairChildren.AddRange(
-                HandleSingleKeyword(queue, enumerator, Next, token)
+                HandleSingleKeyword(queue, enumerator, KeywordKind.Next, token)
             );
         }
 
@@ -679,7 +608,7 @@ public static class Ifconfig
                     HandleMultipleKeywords(queue, enumerator, groupDefinition.MultipleKeywords, nextToken, nextToken)
                 );
             }
-            else if (nextToken == NewLine)
+            else if (nextToken == Helpers.NewLine)
             {
                 continue;
             }
@@ -745,7 +674,7 @@ public static class Ifconfig
                 break;
             }
 
-            if (item.Value != Drop)
+            if (item.Value != KeywordKind.Drop)
             {
                 key += $" {nextItem}";
             }
@@ -765,69 +694,29 @@ public static class Ifconfig
     private static IEnumerable<Pair> HandleSingleKeyword(
         Queue<string> queue,
         IEnumerator<string> enumerator,
-        string kind,
+        KeywordKind kind,
         string token
     )
     {
-        if (kind == NewLine)
-        {
-            // grab tokens until newline.
-            var value = string.Empty;
-            while (Helpers.TryGetValue(enumerator, queue, out var nextItem) && nextItem != NewLine)
-            {
-                value += $" {nextItem}";
-            }
-
-            // last item is a newline, which we can ignore,
-            yield return new Pair(token, value.Trim(), []);
-        }
-        else if (kind == Next)
+        // Special inet6 handling: split interface from address
+        if (kind == KeywordKind.Next && token == "inet6")
         {
             if (Helpers.TryGetValue(enumerator, queue, out var value))
             {
-                if (token == "inet6")
-                {
-                    var items = value.Split('%');
-                    yield return new Pair(token, items[0], []);
-                    if (items.Length > 1)
-                    {
-                        yield return new Pair("interface", items[1], []);
-                    }
-                }
-                else
-                {
-                    yield return new Pair(token, value, []);
-                }
-            }
-        }
-        else if (kind == Single)
-        {
-            yield return new Pair(token, "true", []);
-        }
-        else if (kind == Options)
-        {
-            if (Helpers.TryGetValue(enumerator, queue, out var value))
-            {
-                var items = value.Split('<');
-                var optionList = Array.Empty<Pair>();
-
+                var items = value.Split('%');
+                yield return new Pair(token, items[0], []);
                 if (items.Length > 1)
                 {
-                    optionList = items[1].Trim('>').Split(',').Select(o => new Pair($"{token} item", o, [])).ToArray();
+                    yield return new Pair("interface", items[1], []);
                 }
-
-                var pairChildren = new []
-                {
-                    new Pair("Bits", items[0], []),
-                    new Pair("Values", string.Empty, optionList, ChildType.ArrayType),
-                };
-
-                yield return new Pair(token, string.Empty, [.. pairChildren], ChildType.ObjectType);
             }
+
+            yield break;
         }
-        else
+
+        foreach (var pair in Helpers.HandleSingleKeyword(queue, enumerator, kind, token, '<', '>'))
         {
-            throw new InvalidOperationException("Unknown Keyword Type");
+            yield return pair;
         }
     }
 
@@ -848,11 +737,6 @@ public static class Ifconfig
                 sb.Clear();
                 continue;
             }
-            else if (!char.IsWhiteSpace((char)c))
-            {
-                sb.Append((char)c);
-                continue;
-            }
             else if (c == '\n')
             {
                 if (sb.Length > 0)
@@ -861,7 +745,12 @@ public static class Ifconfig
                     sb.Clear();
                 }
 
-                yield return NewLine;
+                yield return Helpers.NewLine;
+                continue;
+            }
+            else if (!char.IsWhiteSpace((char)c))
+            {
+                sb.Append((char)c);
                 continue;
             }
 

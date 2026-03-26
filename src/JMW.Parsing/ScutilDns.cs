@@ -86,92 +86,12 @@ public static class ScutilDns
 
         writer.WriteEndArray();
         writer.Flush();
-        var json = Encoding.UTF8.GetString(stream.ToArray());
-        outputWriter.WriteLine(json);
+        outputWriter.WriteLine(Encoding.UTF8.GetString(stream.GetBuffer(), 0, (int)stream.Position));
     }
 
     #endregion
 
     #region Classes and Constants
-
-    private record Pair(string Key, string Value, Pair[] Children, ChildType ChildType = ChildType.StringType)
-    {
-        public void WriteJson(Utf8JsonWriter writer, bool ignoreKey = false)
-        {
-            switch (ChildType)
-            {
-                case ChildType.StringType:
-
-                    writer.WriteString(Helpers.CleanKey(Key), Value);
-                    break;
-                case ChildType.ObjectType:
-                {
-                    if (ignoreKey)
-                    {
-                        writer.WriteStartObject();
-                    }
-                    else
-                    {
-                        writer.WriteStartObject(Helpers.CleanKey(Key));
-                    }
-
-                    foreach (var child in Children)
-                    {
-                        child.WriteJson(writer);
-                    }
-
-                    writer.WriteEndObject();
-                }
-                    break;
-                case ChildType.ArrayType:
-                    if (ignoreKey)
-                    {
-                        writer.WriteStartArray();
-                    }
-                    else
-                    {
-                        writer.WriteStartArray(Helpers.CleanKey(Key));
-                    }
-
-                    foreach (var child in Children)
-                    {
-                        if (child.ChildType == ChildType.StringType)
-                        {
-                            writer.WriteStringValue(child.Value);
-                        }
-                        else
-                        {
-                            child.WriteJson(writer, true);
-                        }
-                    }
-
-                    writer.WriteEndArray();
-                    break;
-            }
-        }
-
-        public void WriteKeyValues(TextWriter writer, int indent = 0)
-        {
-            writer.WriteLine($"{string.Empty.PadLeft(indent)}{Helpers.CleanKey(Key)}: {Value}");
-            if (Children.Length > 0)
-            {
-                foreach (var child in Children)
-                {
-                    child.WriteKeyValues(writer, indent + 4);
-                }
-            }
-        }
-    }
-
-    private enum TokenKind
-    {
-        NewLine,
-        Next,
-        Single,
-        Options,
-        Drop,
-        Group,
-    }
 
     private enum TokenType
     {
@@ -182,7 +102,7 @@ public static class ScutilDns
     }
 
     private record TokenDef(
-        TokenKind Kind,
+        KeywordKind Kind,
         TokenType Type,
         HashSet<string>? MultipleKeywords = default,
         bool IsArray = false
@@ -190,17 +110,17 @@ public static class ScutilDns
 
     private static readonly Dictionary<string, TokenDef> Tokens = new()
     {
-        { "nameserver", new TokenDef(TokenKind.Next, TokenType.Single, IsArray: true) },
-        { "if_index", new TokenDef(TokenKind.NewLine, TokenType.Single) },
-        { "flags", new TokenDef(TokenKind.NewLine, TokenType.Single) },
-        { "reach", new TokenDef(TokenKind.Options, TokenType.Single) },
-        { "domain", new TokenDef(TokenKind.Next, TokenType.Single) },
-        { "options", new TokenDef(TokenKind.Next, TokenType.Single) },
-        { "timeout", new TokenDef(TokenKind.Next, TokenType.Single) },
-        { "order", new TokenDef(TokenKind.Next, TokenType.Single) },
+        { "nameserver", new TokenDef(KeywordKind.Next, TokenType.Single, IsArray: true) },
+        { "if_index", new TokenDef(KeywordKind.NewLine, TokenType.Single) },
+        { "flags", new TokenDef(KeywordKind.NewLine, TokenType.Single) },
+        { "reach", new TokenDef(KeywordKind.Options, TokenType.Single) },
+        { "domain", new TokenDef(KeywordKind.Next, TokenType.Single) },
+        { "options", new TokenDef(KeywordKind.Next, TokenType.Single) },
+        { "timeout", new TokenDef(KeywordKind.Next, TokenType.Single) },
+        { "order", new TokenDef(KeywordKind.Next, TokenType.Single) },
 
         // Multiple
-        { "search", new TokenDef( TokenKind.Next, TokenType.Multiple,  [ "domain" ], IsArray: true) },
+        { "search", new TokenDef( KeywordKind.Next, TokenType.Multiple,  [ "domain" ], IsArray: true) },
     };
 
     #endregion
@@ -346,61 +266,11 @@ public static class ScutilDns
     private static IEnumerable<Pair> HandleSingleKeyword(
         Queue<string> queue,
         IEnumerator<string> enumerator,
-        TokenKind kind,
+        KeywordKind kind,
         string token
     )
     {
-        if (kind == TokenKind.NewLine)
-        {
-            // grab tokens until newline.
-            var value = string.Empty;
-            while (Helpers.TryGetValue(enumerator, queue, out var nextItem) && nextItem != Helpers.NewLine)
-            {
-                value += $" {nextItem}";
-            }
-
-            // last item is a newline, which we can ignore,
-            yield return new Pair(token, value.Trim(), []);
-        }
-        else if (kind == TokenKind.Next)
-        {
-            if (Helpers.TryGetValue(enumerator, queue, out var value))
-            {
-                yield return new Pair(token, value, []);
-            }
-        }
-        else if (kind == TokenKind.Single)
-        {
-            yield return new Pair(token, "true", []);
-        }
-        else if (kind == TokenKind.Options)
-        {
-            var value = string.Empty;
-            while (Helpers.TryGetValue(enumerator, queue, out var nextItem) && nextItem != Helpers.NewLine)
-            {
-                value += $" {nextItem}";
-            }
-
-            var items = value.Split('(');
-            var optionList = Array.Empty<Pair>();
-
-            if (items.Length > 1)
-            {
-                optionList = items[1].Trim(')').Split(',').Select(o => new Pair($"{token} item", o, [])).ToArray();
-            }
-
-            var pairChildren = new []
-            {
-                new Pair("Bits", items[0], []),
-                new Pair("Values", string.Empty, optionList, ChildType.ArrayType),
-            };
-
-            yield return new Pair(token, string.Empty, [.. pairChildren], ChildType.ObjectType);
-        }
-        else
-        {
-            throw new InvalidOperationException("Unknown Keyword Type");
-        }
+        return Helpers.HandleSingleKeyword(queue, enumerator, kind, token, '(', ')', optionsReadUntilNewLine: true);
     }
 
     private static IEnumerable<string> Tokenize(TextReader output)
@@ -432,11 +302,6 @@ public static class ScutilDns
                 sb.Clear();
                 continue;
             }
-            else if (!char.IsWhiteSpace((char)c))
-            {
-                sb.Append((char)c);
-                continue;
-            }
             else if (c == '\n')
             {
                 if (sb.Length > 0)
@@ -446,6 +311,11 @@ public static class ScutilDns
                 }
 
                 yield return Helpers.NewLine;
+                continue;
+            }
+            else if (!char.IsWhiteSpace((char)c))
+            {
+                sb.Append((char)c);
                 continue;
             }
 

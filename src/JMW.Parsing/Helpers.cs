@@ -8,6 +8,84 @@ public static class Helpers
     public const string NewLine = "<newline>";
     public const string ArrayItem = "<arrayitem>";
 
+    internal static IEnumerable<Pair> HandleSingleKeyword(
+        Queue<string> queue,
+        IEnumerator<string> enumerator,
+        KeywordKind kind,
+        string token,
+        char optionOpen,
+        char optionClose,
+        bool optionsReadUntilNewLine = false
+    )
+    {
+        if (kind == KeywordKind.NewLine)
+        {
+            var sb = new StringBuilder();
+            while (TryGetValue(enumerator, queue, out var nextItem) && nextItem != NewLine)
+            {
+                sb.Append(' ').Append(nextItem);
+            }
+
+            yield return new Pair(token, sb.ToString().TrimStart(), []);
+        }
+        else if (kind == KeywordKind.Next)
+        {
+            if (TryGetValue(enumerator, queue, out var value))
+            {
+                yield return new Pair(token, value, []);
+            }
+        }
+        else if (kind == KeywordKind.Single)
+        {
+            yield return new Pair(token, "true", []);
+        }
+        else if (kind == KeywordKind.Options)
+        {
+            string value;
+            if (optionsReadUntilNewLine)
+            {
+                var sb = new StringBuilder();
+                while (TryGetValue(enumerator, queue, out var nextItem) && nextItem != NewLine)
+                {
+                    sb.Append(' ').Append(nextItem);
+                }
+
+                value = sb.ToString();
+            }
+            else
+            {
+                if (!TryGetValue(enumerator, queue, out var v))
+                {
+                    yield break;
+                }
+
+                value = v;
+            }
+
+            var items = value.Split(optionOpen);
+            var optionList = Array.Empty<Pair>();
+
+            if (items.Length > 1)
+            {
+                optionList = items[1].Trim(optionClose).Split(',')
+                   .Select(o => new Pair($"{token} item", o, []))
+                   .ToArray();
+            }
+
+            var pairChildren = new[]
+            {
+                new Pair("Bits", items[0], []),
+                new Pair("Values", string.Empty, optionList, ChildType.ArrayType),
+            };
+
+            yield return new Pair(token, string.Empty, [.. pairChildren], ChildType.ObjectType);
+        }
+        else
+        {
+            throw new InvalidOperationException("Unknown Keyword Type");
+        }
+    }
+
     public static IEnumerable<string> GetBlocks(TextReader output, bool trimInitialWhitespace = true, bool trimEndingWhitespace = false)
     {
         var sb = new StringBuilder();

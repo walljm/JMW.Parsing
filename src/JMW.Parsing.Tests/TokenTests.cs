@@ -1,8 +1,6 @@
-using Xunit.Abstractions;
-
 namespace JMW.Parsing.Tests;
 
-public class TokenTests(ITestOutputHelper testOutputHelper)
+public class TokenTests
 {
    [Fact]
     public void TokenizeTest()
@@ -15,10 +13,11 @@ public class TokenTests(ITestOutputHelper testOutputHelper)
             if (!dict.TryAdd(key, 1)) dict[key]++;
         }
 
-        foreach (var kvp in dict.OrderByDescending(o => o.Value))
-        {
-           testOutputHelper.WriteLine(kvp.Key + ": " + kvp.Value);
-        }
+        Assert.NotEmpty(dict);
+        Assert.True(dict.ContainsKey("is"));
+        Assert.True(dict.ContainsKey("MTU"));
+        // "is" should appear frequently across all interface blocks
+        Assert.True(dict["is"] > 10);
     }
 
     [Fact]
@@ -26,22 +25,13 @@ public class TokenTests(ITestOutputHelper testOutputHelper)
     {
         var reader = new StringReader(ShowInterfaces);
         var blockData = Tokenizer.GetBlockData(reader);
-        foreach (var block in blockData.Blocks)
-        {
-            foreach (var token in block)
-            {
-                if (blockData.CommonTokens.Contains(token.ToLower()))
-                {
-                    // its a key!
-                    testOutputHelper.WriteLine($"  Key: {token}");
-                }
-                else
-                {
-                    // not a key, but a value
-                    testOutputHelper.WriteLine($"Value: {token}");
-                }
-            }
-        }
+
+        Assert.NotEmpty(blockData.Blocks);
+        Assert.NotEmpty(blockData.CommonTokens);
+        // Should have multiple blocks from the show interfaces output
+        Assert.True(blockData.Blocks.Count > 5);
+        // Common tokens should contain words that appear in every block
+        Assert.Contains("is", blockData.CommonTokens);
     }
 
     #region data

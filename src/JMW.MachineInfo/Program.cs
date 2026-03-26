@@ -42,7 +42,8 @@ public class Program
         {
             if (!RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
             {
-                Console.WriteLine("Unable to run scutil --dns on a non MacOS platform.");
+                Console.Error.WriteLine("Unable to run scutil --dns on a non MacOS platform.");
+                return;
             }
 
             using var process = new Process();
@@ -55,6 +56,11 @@ public class Program
             // Synchronously read the standard output of the spawned process.
             ScutilDns.Parse(process.StandardOutput, Console.Out, parsingOpts);
             process.WaitForExit();
+        }
+        else
+        {
+            Console.Error.WriteLine("No command specified. Use --ifconfig or --scutildns.");
+            Console.Error.WriteLine("Use --help for more information.");
         }
     }
 }
