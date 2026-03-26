@@ -14,4 +14,4 @@ internal enum ChildType
     ObjectType,
 }
 
-public record DisplayOptions(OutputType OutputType, string? Filter = null);
+public record DisplayOptions(OutputType OutputType, int? ConsoleWidth = null, string? Filter = null);

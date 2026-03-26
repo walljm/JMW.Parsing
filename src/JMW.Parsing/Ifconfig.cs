@@ -2,7 +2,8 @@ using System.Collections;
 using System.Net;
 using System.Text;
 using System.Text.Json;
-using ConsoleTableExt;
+using System.Text.RegularExpressions;
+using table.lib;
 
 namespace JMW.Parsing;
 
@@ -22,7 +23,7 @@ public static class Ifconfig
         }
         else if (displayOptions.OutputType == OutputType.Table)
         {
-            OutputTable(inputReader, outputWriter, displayOptions.Filter);
+            OutputTable(inputReader, outputWriter, displayOptions);
         }
     }
 
@@ -44,7 +45,7 @@ public static class Ifconfig
         }
     }
 
-    public static void OutputTable(TextReader inputReader, TextWriter outputWriter, string? filter)
+    public static void OutputTable(TextReader inputReader, TextWriter outputWriter, DisplayOptions displayOptions)
     {
         var blocks = Helpers.GetBlocks(inputReader, trimInitialWhitespace: true, trimEndingWhitespace: false);
 
@@ -52,40 +53,32 @@ public static class Ifconfig
         var data = new List<Ifc>();
         foreach (var block in blocks)
         {
-            outputWriter.WriteLine(); // empty line for a spacer
-
             using var blockReader = new StringReader(block);
             var pairs = GetPairs(Tokenize(blockReader)).ToArray();
 
-            var name = string.Empty;
-            var status = string.Empty;
-            var flags = string.Empty;
-            var adminStatus = string.Empty;
-            var operStatus = string.Empty;
-            var index = -1;
-            var type = string.Empty;
-            var mac = string.Empty;
-            var ip = string.Empty;
-            var media = string.Empty;
+            var ifc = new Ifc();
 
             foreach (var pair in pairs)
             {
                 if (pair.Key == "InterfaceName")
                 {
-                    name = pair.Value;
+                    ifc.Name = pair.Value;
                 }
                 else if (pair.Key == "status")
                 {
-                    status = pair.Value;
+                    ifc.Status = pair.Value;
                 }
                 else if (pair.Key == "flags")
                 {
-                    flags = string.Join(',', pair.Children.FirstOrDefault(static o => o.Key == "Values")?.Children.Select(static o => o.Value) ?? []);
-                    adminStatus =
+                    ifc.Flags = string.Join(
+                        ',',
+                        pair.Children.FirstOrDefault(static o => o.Key == "Values")?.Children.Select(static o => o.Value) ?? []
+                    );
+                    ifc.AdminStatus =
                         pair.Children.FirstOrDefault(static o => o.Key == "Values")?.Children.FirstOrDefault(static o => o.Value == "UP") is not null
                             ? "Up"
                             : "Down";
-                    operStatus = pair.Children
+                    ifc.OperStatus = pair.Children
                        .FirstOrDefault(static o => o.Key == "Values")
                       ?.Children
                        .FirstOrDefault(static o => o.Value == "RUNNING") is not null
@@ -94,19 +87,19 @@ public static class Ifconfig
                 }
                 else if (pair.Key == "index")
                 {
-                    index = int.TryParse(pair.Value, out var idx) ? idx : -1;
+                    ifc.Index = int.TryParse(pair.Value, out var idx) ? idx : -1;
                 }
                 else if (pair.Key == "type")
                 {
-                    type = pair.Value;
+                    ifc.Type = pair.Value;
                 }
                 else if (pair.Key == "ether")
                 {
-                    mac = pair.Value;
+                    ifc.MAC = pair.Value;
                 }
                 else if (pair.Key == "inets")
                 {
-                    ip = string.Join(
+                    ifc.IP = string.Join(
                         ", ",
                         pair.Children.Select(
                             static o => string.Join(
@@ -133,55 +126,82 @@ public static class Ifconfig
                 }
                 else if (pair.Key == "media")
                 {
-                    media = pair.Value;
-                }
-                else
-                {
+                    ifc.Media = pair.Value;
                 }
             }
 
-            if (type.Length == 0)
+            if (ifc.Type.Length == 0)
             {
-                if (flags.Contains("POINTOPOINT"))
+                if (ifc.Flags.Contains("POINTOPOINT") )
                 {
-                    type = "Tunnel";
+                    ifc.Type = "Tunnel";
                 }
-                else if (name.StartsWith("bridge"))
+                else if (ifc.Name.StartsWith("bridge"))
                 {
-                    type = "Virtual Bridge";
+                    ifc.Type = "Virtual Bridge";
                 }
-                else if (name.StartsWith("stf"))
+                else if (ifc.Name.StartsWith("stf") )
                 {
-                    type = "6to4 Tunnel";
+                    ifc.Type = "6to4 Tunnel";
                 }
-                else if (flags.Contains("LOOPBACK"))
+                else if (ifc.Flags.Contains("LOOPBACK"))
                 {
-                    type = "Loopback";
+                    ifc.Type = "Loopback";
                 }
             }
 
-            data.Add(new (name, status, flags, adminStatus, operStatus, index, type, mac, ip, media));
+            data.Add(ifc);
         }
 
-        if (filter is not null)
+        #endregion
+
+        #region Filter data and handle display width
+
+        if (displayOptions.Filter is not null)
         {
+            var opts = RegexOptions.IgnoreCase | RegexOptions.NonBacktracking | RegexOptions.CultureInvariant;
             data = data.Where(
-                    o => o.Status.Contains(filter, StringComparison.OrdinalIgnoreCase)
-                      || o.Name.Contains(filter, StringComparison.OrdinalIgnoreCase)
-                      || o.IP.Contains(filter, StringComparison.OrdinalIgnoreCase)
-                      || o.MAC.Contains(filter, StringComparison.OrdinalIgnoreCase)
-                      || o.AdminStatus.Contains(filter, StringComparison.OrdinalIgnoreCase)
-                      || o.OperStatus.Contains(filter, StringComparison.OrdinalIgnoreCase)
+                    o => Regex.IsMatch(o.Status, displayOptions.Filter, opts)
+                      || Regex.IsMatch(o.Name, displayOptions.Filter, opts)
+                      || Regex.IsMatch(o.IP, displayOptions.Filter, opts)
+                      || Regex.IsMatch(o.MAC, displayOptions.Filter, opts)
+                      || Regex.IsMatch(o.AdminStatus, displayOptions.Filter, opts)
+                      || Regex.IsMatch(o.OperStatus, displayOptions.Filter, opts)
                 )
                .ToList();
         }
 
         data = data.OrderBy(static o => o.Index).ThenBy(static o => o.Name).ToList();
+        var columns = typeof(Ifc).GetProperties().Select(static o => o.Name).ToList();
 
-        ConsoleTableBuilder
-           .From(data)
-           .WithFormat(ConsoleTableBuilderFormat.MarkDown)
-           .ExportAndWriteLine();
+        if (displayOptions.ConsoleWidth < 225)
+        {
+            columns.Remove(nameof(Ifc.Media));
+        }
+
+        if (displayOptions.ConsoleWidth < 180)
+        {
+            columns.Remove(nameof(Ifc.Flags));
+        }
+
+        if (displayOptions.ConsoleWidth < 120)
+        {
+            columns.Remove(nameof(Ifc.Index));
+        }
+
+        if (displayOptions.ConsoleWidth < 100)
+        {
+            columns.Remove(nameof(Ifc.AdminStatus));
+        }
+
+        #endregion
+
+        var tbl = Table<Ifc>.Add(data);
+        tbl.BackgroundColor = Console.BackgroundColor;
+        tbl.ForegroundColor = Console.ForegroundColor;
+        tbl.FilterColumns(columns.ToArray(), FilterAction.Include);
+        var result = tbl.ToMarkDown();
+        outputWriter.Write(result);
     }
 
     private static int GetMaskLen(string ip)
@@ -202,18 +222,19 @@ public static class Ifconfig
         return cidr;
     }
 
-    private record Ifc(
-        string Name,
-        string Status,
-        string Flags,
-        string AdminStatus,
-        string OperStatus,
-        int Index,
-        string Type,
-        string MAC,
-        string IP,
-        string Media
-    );
+    private record Ifc
+    {
+        public string Name { get; set; } = string.Empty;
+        public string Status { get; set; } = string.Empty;
+        public string Flags { get; set; } = string.Empty;
+        public string AdminStatus { get; set; } = string.Empty;
+        public string OperStatus { get; set; } = string.Empty;
+        public int Index { get; set; } = -1;
+        public string Type { get; set; } = string.Empty;
+        public string MAC { get; set; } = string.Empty;
+        public string IP { get; set; } = string.Empty;
+        public string Media { get; set; } = string.Empty;
+    }
 
     public static void OutputJson(TextReader inputReader, TextWriter outputWriter)
     {

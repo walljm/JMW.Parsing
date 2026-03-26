@@ -24,7 +24,7 @@ public class Program
             return;
         }
 
-        var parsingOpts = new DisplayOptions(options.OutputType, options.Filter);
+        var parsingOpts = new DisplayOptions(options.OutputType, Console.BufferWidth, options.Filter);
         if (options.UseIfconfig)
         {
             using var process = new Process();
@@ -53,7 +53,7 @@ public class Program
             process.Start();
 
             // Synchronously read the standard output of the spawned process.
-            Ifconfig.Parse(process.StandardOutput, Console.Out, parsingOpts);
+            ScutilDns.Parse(process.StandardOutput, Console.Out, parsingOpts);
             process.WaitForExit();
         }
     }

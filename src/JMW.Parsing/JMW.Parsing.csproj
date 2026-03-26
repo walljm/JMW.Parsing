@@ -1,14 +1,15 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
-        <TargetFramework>net8.0</TargetFramework>
+        <TargetFramework>net10.0</TargetFramework>
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
     </PropertyGroup>
 
     <ItemGroup>
         <PackageReference Include="ConsoleTableExt" Version="3.3.0" />
-        <PackageReference Include="Superpower" Version="3.0.0"/>
+        <PackageReference Include="Superpower" Version="3.1.0"/>
+        <PackageReference Include="table.lib" Version="1.17.0" />
     </ItemGroup>
 
 </Project>
